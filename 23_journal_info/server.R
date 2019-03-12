@@ -3,8 +3,8 @@
 server <- function(input, output) {
   ########## load dataset ##########
   originaldata <- reactive({
-    # jdata <- fread('https://raw.githubusercontent.com/lcpmgh/Journal/master/Journal.csv', stringsAsFactors=F)
-    jdata <- fread('Journal.csv', stringsAsFactors=F)
+    jdata <- fread('https://raw.githubusercontent.com/lcpmgh/Journal/master/Journal.csv', stringsAsFactors=F)
+    # jdata <- fread('Journal.csv', stringsAsFactors=F)
     jdata <- dplyr::rename(jdata,"CiteScore(%)"="CiteScore")
     jdata[Is_SCI=="无",Is_SCI:="无数据"]
     jdata[Category=="",Category:="无数据"]
