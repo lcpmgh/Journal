@@ -4,9 +4,9 @@ R爬虫 提取LetPub上的期刊信息 利用shiny构建期刊信息查询系统
 ===== 2019.3.12日更新 =====  
 用了几天Excel版，筛选和排序太过繁琐，查询起来也让人头疼，因此做了个shinyapp解决以上问题，此次将ui.r和server.r上传在23_journal_info文件夹中。
 
-对于github上的网络版，配置好环境，在R中通过```runGitHub("Journal","lcpmgh",subdir="23_journal_info")```打开。本来想部署在shinyapps.io上，但是有中文乱码的bug，这里做了一个大幅度阉割的英文版[24_journal_info_en](https://www.shinyapps.io/admin/#/application/783758)，就看看就行，连学科分类和期刊分区的筛选都没办法实现，等有机会把数据译成全英文的，再部署完整版。
+对于github上的网络版，配置好环境，在R中通过```runGitHub("Journal","lcpmgh",subdir="23_journal_info")```打开。本来想部署在shinyapps.io上，但是有中文乱码的bug，这里做了一个大幅度阉割的英文版[24_journal_info_en](https://lcpmgh.shinyapps.io/24_journal_info_en/)，就看看就行，连学科分类和期刊分区的筛选都没办法实现，等有机会把数据译成全英文的，再部署完整版。
 
-本地使用时，建议将r加入环境变量，建立bat文件，代码类似```Rscript -e "library(shiny);runApp('D:/#R/@demo/Shinyapp/23_journal_info',launch.browser=T)"```（注意server.r中默认读取github上的数据），这样只需运行bat文件，省的每次都打开R，体验上更类似于一款独立的软件。
+本地使用时，建议将r加入环境变量，建立bat文件，代码类似```Rscript -e "library(shiny);runApp('D:/23_journal_info',launch.browser=T)"```（注意server.r中默认读取github上的数据），这样只需运行bat文件，省的每次都打开R，体验上更类似于一款独立的软件。
 
 ===== 以下为原readme内容 =====  
 起因是想找一下优质期刊的论文看，然而查询中科院jcr分区太麻烦了，有个网站LetPub还能用，但是在我看来也不好用，看了下这个网站超级简陋，没有任何的反爬虫机制，还不如豆瓣电影，所以就写了个代码跑一下、
