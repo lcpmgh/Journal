@@ -5,7 +5,7 @@ server <- function(input, output) {
   originaldata <- reactive({
     jdata <- fread('https://raw.githubusercontent.com/lcpmgh/Journal/master/Journal.csv', stringsAsFactors=F)
     # jdata <- fread('Journal.csv', stringsAsFactors=F)
-    jdata <- dplyr::rename(jdata,"CiteScore(%)"="CiteScore")
+    jdata <- dplyr::rename(jdata,"Self_citing(%)"="Self_citing")
     jdata[Is_SCI=="无",Is_SCI:="无数据"]
     jdata[Category=="",Category:="无数据"]
     jdata[Discipline=="",Discipline:="无数据"]
