@@ -17,10 +17,10 @@ ui <- fluidPage(
                  pickerInput(
                    inputId = "inp_0",
                    label = "选择要显示的条目", 
-                   choices = c("ISSN","Journal","Abbr_Name","Is_SCI","IF2018","IF_5year","Self_citing","H_Index","CiteScore(%)","Division","Category",
+                   choices = c("ISSN","Journal","Abbr_Name","Is_SCI","IF2018","IF_5year","Self_citing(%)","H_Index","CiteScore","Division","Category",
                                "Discipline","IsTop","IsReview","Publication_Cycle","Article_NO._per_year","Publication_year","Region","OA",
                                "Employment","Refereeing","View","Url"),
-                   selected = c("ISSN","Journal","Abbr_Name","Is_SCI","IF2018","IF_5year","Self_citing","H_Index","CiteScore(%)","Division","Category",
+                   selected = c("ISSN","Journal","Abbr_Name","Is_SCI","IF2018","IF_5year","Self_citing(%)","H_Index","CiteScore","Division","Category",
                                 "Discipline","IsTop","IsReview","Publication_Cycle","Article_NO._per_year","Publication_year","Region","OA",
                                 "Employment","Refereeing","View","Url"),
                    options = list(`selected-text-format`="count > 3",`actions-box`=TRUE),
