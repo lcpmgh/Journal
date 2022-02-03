@@ -1,6 +1,10 @@
 # Journal
 R爬虫 提取LetPub上的期刊信息 利用shiny构建期刊信息查询系统
 
+===== 2022.2.3日更新 =====  
+
+修改了shinyapp，并将其部署在我自己的阿里云上，欢迎访问：[Journalinfo](http://192.168.188.100:3838/journalinfo/)，再也不用受制于shinyapps.io了。但是这个数据还是2018年的影响因子，实际上已经过时了，仅做参考吧，有时间再去更新数据。
+
 ===== 2019.3.12日更新 =====  
 用了几天Excel版，筛选和排序太过繁琐，查询起来也让人头疼，因此做了个shinyapp解决以上问题，此次将ui.r和server.r上传在23_journal_info文件夹中。
 
@@ -23,6 +27,6 @@ R爬虫 提取LetPub上的期刊信息 利用shiny构建期刊信息查询系统
   3. phantomjs和chromedriver，去网上下载，加入环境变量中使用，由于此次爬虫过于简单，用phantomjs就行，并且因为不显示内容，速度比chrome要快不少
   4. selenium server，v2.50.1，一个java的脚本，高版本的不支持phantomjs了，这个还能用
   5. 此次所用r包，都位于CRAN上，直接装
-  
+
 此次运行只记录了第二个函数的时间，耗时两个多小时……
 ![函数crawler_jcr_2运行时间](https://github.com/lcpmgh/Journal/blob/master/timeconsuming.png "函数crawler_jcr_2运行时间")
