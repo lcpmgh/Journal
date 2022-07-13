@@ -10,11 +10,15 @@ server <- function(input, output) {
   #### 1. Load dataset ####
   # jdata <- fread('https://raw.githubusercontent.com/lcpmgh/Journal/master/Journal.csv', stringsAsFactors=F)
   # jdata <- fread('/home/lc/journalinfo/Journal.csv', stringsAsFactors=F, encoding = "UTF-8")
-  jdata <- fread('./Journal.csv', stringsAsFactors=F, encoding = "UTF-8")
+  jdata <- fread('./journal2018.csv', stringsAsFactors=F, encoding = "UTF-8")
+  jdata2022 <- fread('./journal2022.csv', stringsAsFactors=F, encoding = "UTF-8")
+  jdatacate0 <- jdata2022$category
+  jdatacate <- fread("./journal2022category.csv", header = T, sep = ",")$cate
   Items <- names(jdata)
+  Items2 <- names(jdata2022)
   
-  #### 2. Sidebar ####
-  output$ui_sidebar <- renderUI({
+  #### 2. Sidebar1 ####
+  output$ui_sidebar1 <- renderUI({
     tagList(
       pickerInput(inputId = "inp_0",
                   label = "选择要显示的条目", 
@@ -22,7 +26,6 @@ server <- function(input, output) {
                   selected = Items,
                   options = list(`selected-text-format` = "count > 3", `actions-box` = TRUE),
                   multiple = TRUE),
-      tags$hr(),
       h4(strong("筛选项目")),
       checkboxGroupButtons(inputId = "inp_1",
                            label = "1. 收录情况",
@@ -63,8 +66,13 @@ server <- function(input, output) {
     )
   })
   
-  #### 3. Main ####
-  output$ui_main    <- renderUI({DT::dataTableOutput("table")})
+  #### 3. Main1 ####
+  output$ui_main1    <- renderUI({
+    tagList(
+      h3("2018年度期刊信息表"),
+      tags$hr(),
+      DT::dataTableOutput("table")
+      )})
   output$table <- DT::renderDataTable({
     if(length(input$inp_0) != 0) input_0 <- input$inp_0 else input_0 <- Items
     if(length(input$inp_1) != 0) input_1 <- input$inp_1 else input_1 <- unique(jdata$IsSCI)
@@ -86,4 +94,72 @@ server <- function(input, output) {
                   options = list(pageLength = 10, autoWidth = TRUE, scrollX = TRUE))
     
   })
+
+  ########################
+  #### 4. Sidebar2 ####
+  output$ui_sidebar2 <- renderUI({
+  tagList(
+    pickerInput(inputId = "inp2_0",
+                label = "选择要显示的条目", 
+                choices = Items2,
+                selected = Items2,
+                options = list(`selected-text-format` = "count > 3", `actions-box` = TRUE),
+                multiple = TRUE),
+    h4(strong("筛选项目")),
+    checkboxGroupButtons(inputId = "inp2_1",
+                         label = "1. 收录情况",
+                         choices = c("SCIE", "SSCI", "AHCI", "ESCI"),
+                         status = "primary",
+                         checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove",lib = "glyphicon")), size = 'xs'),
+    checkboxGroupButtons(inputId = "inp2_2",
+                         label = "2. JCR分区",
+                         choices = c("Q1", "Q2", "Q3", "Q4", "N"),
+                         status = "primary",
+                         checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove",lib = "glyphicon")), size = 'xs'),
+    pickerInput(inputId = "inp2_3",
+                label = "3. 分类", 
+                choices = sort(jdatacate),
+                options = list(`selected-text-format` = "count > 3", `actions-box` = TRUE), multiple = TRUE)
+  )
+  })
+  
+  #### 5. Main2 ####
+  output$ui_main2    <- renderUI({
+    tagList(
+      h3("2022年度JCR期刊信息表"),
+      tags$hr(),
+      DT::dataTableOutput("table2")
+    )})
+  output$table2 <- DT::renderDataTable({
+    if(length(input$inp2_0) != 0) input2_0 <- input$inp2_0 else input2_0 <- Items2
+    if(length(input$inp2_1) != 0) input2_1 <- input$inp2_1 else input2_1 <- c("SCIE", "SSCI", "AHCI", "ESCI")
+    if(length(input$inp2_2) != 0) input2_2 <- input$inp2_2 else input2_2 <- c("Q1", "Q2", "Q3", "Q4", "N")
+    if(length(input$inp2_3) != 0) input2_3 <- input$inp2_3 else input2_3 <- jdatacate
+    
+    if(length(input2_1) < 4){
+    sig1 <- seq(T, nrow(jdata2022))
+      for(i in input2_1){
+        sig1 <- sig1&str_detect(jdata2022$collection, i)
+      }
+    } else{
+    sig1 <- seq(T, nrow(jdata2022))
+    }
+    
+    if(length(input2_3) < length(jdatacate)){
+    sig2 <- seq(T, nrow(jdata2022))
+      for(i in input2_3){
+        sig2 <- sig2&str_detect(jdata2022$category, i)
+      }
+    } else{
+    sig2 <- seq(T, nrow(jdata2022))
+    }
+    
+    showdt <- jdata2022[sig1&sig2,]  %>% .[rank %in% input2_2,
+                                     .SD, .SDcols = input2_0]
+
+    DT::datatable(showdt, 
+                  options = list(pageLength = 10, autoWidth = TRUE, scrollX = TRUE))
+    
+  })
+  
 }
