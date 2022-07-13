@@ -1,11 +1,15 @@
 # Journal
-R爬虫 提取LetPub上的期刊信息 利用shiny构建期刊信息查询系统
+R语言爬虫提取LetPub期刊信息，并利用shiny构建期刊信息查询系统: [Journal](http://lcpmgh.com/Journal)
 
-===== 2022.2.3日更新 =====  
+===== 2022.07.13更新===== 
+
+更新了JCR2022影响因子数据，由于该数据与LetPub的条目差异较大，因此并未删除原数据，两组数据同时展示。
+
+===== 2022.02.30更新 =====  
 
 修改了shinyapp，并将其部署在我自己的阿里云上，欢迎访问：[Journal](http://lcpmgh.com/Journal)，再也不用受制于shinyapps.io了。但是这个数据还是2018年的影响因子，实际上已经过时了，仅做参考吧，有时间再去更新数据。
 
-===== 2019.3.12日更新 =====  
+===== 2019.03.12更新 =====  
 用了几天Excel版，筛选和排序太过繁琐，查询起来也让人头疼，因此做了个shinyapp解决以上问题，此次将ui.r和server.r上传在23_journal_info文件夹中。
 
 对于github上的网络版，配置好环境，在R中通过```shiny::runGitHub("Journal","lcpmgh",subdir="23_journal_info")```打开。本来想部署在shinyapps.io上，但是有中文乱码的bug，这里做了一个大幅度阉割的英文版[24_journal_info_en](https://lcpmgh.shinyapps.io/24_journal_info_en/)，就看看就行，连学科分类和期刊分区的筛选都没办法实现，等有机会把数据译成全英文的，再部署完整版。
