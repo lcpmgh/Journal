@@ -1,5 +1,18 @@
 # Journal
-R语言爬虫提取LetPub期刊信息，并利用shiny构建期刊信息查询系统: [Journal](http://lcpmgh.com/Journal)
+中英文期刊质量查询系统 [Journal](http://lcpmgh.com/Journal)
+
+中文期刊信息和2018年英文期刊信息采用R爬虫获取，分别源自知网和LetPub；2022JCR数据源自网络下载。
+
+===== 2022.07.16更新===== 
+
+增加了中文期刊的质量信息
+
+对于中文爬虫，有几点需要注意：
+
++ 此次爬虫代码文件为#linshi5-WebCrawlerCNKIjournal.R
++ 本次爬虫采用selenium，所用R语言爬虫技巧可以应付绝大部分使用场景。
++ 对于爬虫环境搭建，主要包括Java环境、selenium-server、chromedriver三部分，网上相应教程较多。
++ Chromedriver无头模式不稳定，常有页面信息无反馈的情况，频率约2/1000，若是否用无头模式速度差别不大，则推荐不用headless。
 
 ===== 2022.07.13更新===== 
 

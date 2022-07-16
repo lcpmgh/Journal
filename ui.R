@@ -24,6 +24,11 @@ ui <- fluidPage(
                        sidebarLayout(
                          sidebarPanel(width = 3, uiOutput("ui_sidebar2")),
                          mainPanel(uiOutput("ui_main2"))
+                       )),
+              tabPanel(title = "中文期刊",
+                       sidebarLayout(
+                         sidebarPanel(width = 3, uiOutput("ui_sidebar3")),
+                         mainPanel(uiOutput("ui_main3"))
                        ))
               ), 
   
@@ -46,5 +51,4 @@ ui <- fluidPage(
                     tags$a("川公网安备51010702002736", target="_blank", href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=51010702002736", style="color:#06c; display:inline;")
            )
   )
-  
 )
