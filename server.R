@@ -73,7 +73,7 @@ server <- function(input, output) {
   #### 3. Main1 ####
   output$ui_main1    <- renderUI({
     tagList(
-      h3("2018年度期刊信息表"),
+      h3("英文期刊信息（LetPub 2018年数据）"),
       tags$hr(),
       DT::dataTableOutput("table")
     )})
@@ -130,7 +130,7 @@ server <- function(input, output) {
   #### 5. Main2 ####
   output$ui_main2    <- renderUI({
     tagList(
-      h3("2022年度JCR期刊信息表"),
+      h3("英文期刊信息（JCR 2022年数据）"),
       tags$hr(),
       DT::dataTableOutput("table2")
     )})
@@ -173,6 +173,10 @@ server <- function(input, output) {
                   options = list(`selected-text-format` = "count > 3", `actions-box` = TRUE),
                   multiple = TRUE),
       h4(strong("属性筛选")),
+      # radioButtons(inputId = "AorO",
+      #              label = "多项属性关系", 
+      #              choices = list("OR" = "o", "AND" = "a"),
+      #              inline = T),
       pickerInput(inputId = "inp3_cate1",
                   label = "1.一级分类", 
                   choices = catech1,
@@ -204,7 +208,7 @@ server <- function(input, output) {
   #### 7. Main3 ####
   output$ui_main3    <- renderUI({
     tagList(
-      h3("中文期刊信息表"),
+      h3("中文期刊信息（CNKI 2022年数据）"),
       tags$hr(),
       DT::dataTableOutput("table3")
     )})
@@ -217,44 +221,35 @@ server <- function(input, output) {
     if(length(input$inp3_lang) != 0)  ip3_lang  <- input$inp3_lang  else ip3_lang  <- c("中文", "英文", "日文", "韩文")
     if(length(input$inp3_stat) != 0)  ip3_stat  <- input$inp3_stat  else ip3_stat  <- c("发行", "停刊", "合并")
     
+    sig_cate1 <- sig_cate2 <- sig_eval <- sig_freq<- sig_lang <- sig_stat <- rep(T, nrow(jdch))
+    
     if(length(ip3_cate1) < length(catech1)){
-      sig1 <- seq(T, nrow(jdch))
-      for(i in ip3_cate1){
-        sig1 <- sig1&str_detect(jdch$category1, i)
-      }
-    } else{
-      sig1 <- seq(T, nrow(jdch))
-    }
+      sig_cate1 <- rep(F, nrow(jdch))
+      for(i in ip3_cate1) sig_cate1 <- sig_cate1|str_detect(jdch$category1, i)
+    } 
     
     if(length(ip3_cate2) < length(catech2)){
-      sig2 <- seq(T, nrow(jdch))
-      for(i in ip3_cate2){
-        sig2 <- sig2&str_detect(jdch$category2, i)
-      }
-    } else{
-      sig2 <- seq(T, nrow(jdch))
-    }
+      sig_cate2 <- rep(F, nrow(jdch))
+      for(i in ip3_cate2) sig_cate2 <- sig_cate2|str_detect(jdch$category2, i)
+    } 
     
-    if(length(ip3_eval) < length(evalch)){
-      sig3 <- seq(T, nrow(jdch))
-      for(i in ip3_eval){
-        sig3 <- sig3&str_detect(jdch$evaluation, i)
-      }
-    } else{
-      sig3 <- seq(T, nrow(jdch))
-    }
+    if(length(ip3_eval)  < length(evalch)){
+      sig_eval <- rep(F, nrow(jdch))
+      for(i in ip3_eval)  sig_eval  <- sig_eval|str_detect(jdch$evaluation, i)
+    } 
+    
+    if(length(ip3_freq)  < length(freqch))  sig_freq <- jdch$frequency %in% ip3_freq
     
     if(length(ip3_lang) < 4){
-      sig4 <- seq(T, nrow(jdch))
-      for(i in ip3_lang){
-        sig4 <- sig4&str_detect(jdch$language, i)
-      }
-    } else{
-      sig4 <- seq(T, nrow(jdch))
-    }
+      sig_lang <- rep(F, nrow(jdch))
+      for(i in ip3_lang) sig_lang <- sig_lang|str_detect(jdch$language, i)
+    } 
     
-    showdt <- jdch[sig1&sig2&sig3&sig4,]  %>% 
-      .[frequency %in% ip3_freq & status %in% ip3_stat, .SD, .SDcols = ip3_item]
+    if(length(ip3_stat) < 3) sig_stat <- jdch$status %in% ip3_stat
+    
+    sig <- sig_cate1&sig_cate2&sig_eval&sig_freq&sig_lang&sig_stat
+    
+    showdt <- jdch[sig, .SD, .SDcols = ip3_item]
     # names(showdt) <- c("ISSN", "CN", "刊名", "译名", "曾用刊名",
     #                    "一级分类", "二级分类", "复合IF", "综合IF", "出版量",
     #                    "下载量", "引用量", "收录", "主办单位", "出版地",

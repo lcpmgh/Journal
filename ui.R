@@ -4,7 +4,6 @@
 # load packages
 library(DT)
 library(shiny)
-# library(dplyr)
 library(stringr)
 library(magrittr)
 library(data.table)
@@ -12,20 +11,20 @@ library(shinyWidgets)
 library(showtext)
 
 ui <- fluidPage(
-  titlePanel("期刊信息查询系统"),
+  titlePanel("学术期刊质量查询系统"),
   tabsetPanel(id = "mainPanel",
               type = "pills",
-              tabPanel(title = "2018",
+              tabPanel(title = "英文LetPub版",
                        sidebarLayout(
                          sidebarPanel(width=3, uiOutput("ui_sidebar1")),
                          mainPanel(uiOutput("ui_main1"))
                        )),
-              tabPanel(title = "2022",
+              tabPanel(title = "英文JCR版",
                        sidebarLayout(
                          sidebarPanel(width = 3, uiOutput("ui_sidebar2")),
                          mainPanel(uiOutput("ui_main2"))
                        )),
-              tabPanel(title = "中文期刊",
+              tabPanel(title = "中文CNKI版",
                        sidebarLayout(
                          sidebarPanel(width = 3, uiOutput("ui_sidebar3")),
                          mainPanel(uiOutput("ui_main3"))
