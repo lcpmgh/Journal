@@ -1,5 +1,5 @@
 ##########===== server =====##########
-server <- function(input, output) {
+server <- function(input, output, session) {
   #### 0. Preparation ####
   
   showtext_auto()
@@ -75,9 +75,9 @@ server <- function(input, output) {
     tagList(
       h3("英文期刊信息（LetPub 2018年数据）"),
       tags$hr(),
-      DT::dataTableOutput("table")
+      DT::dataTableOutput("table1")
     )})
-  output$table <- DT::renderDataTable({
+  output$table1 <- DT::renderDataTable({
     if(length(input$inp1_item) != 0) ip1_item <- input$inp1_item else ip1_item <- item18
     if(length(input$inp1_coll) != 0) ip1_coll <- input$inp1_coll else ip1_coll <- unique(jd18$IsSCI)
     if(length(input$inp1_divi) != 0) ip1_divi <- input$inp1_divi else ip1_divi <- unique(jd18$CASRanking)
@@ -87,16 +87,19 @@ server <- function(input, output) {
     if(length(input$inp1_revi) != 0) ip1_revi <- input$inp1_revi else ip1_revi <- unique(jd18$IsReview)
     if(length(input$inp1_freq) != 0) ip1_freq <- input$inp1_freq else ip1_freq <- unique(jd18$PublicationCycle)
     if(length(input$inp1_loac) != 0) ip1_loac <- input$inp1_loac else ip1_loac <- unique(jd18$Region)
-    DT::datatable(jd18[IsSCI %in% ip1_coll &
-                         CASRanking %in% ip1_divi &
-                         Category %in% ip1_cate &
-                         Discipline %in% ip1_disc &
-                         IsTop %in% ip1_topj &
-                         IsReview %in% ip1_revi &
-                         PublicationCycle %in% ip1_freq &
-                         Region %in% ip1_loac, .SD, .SDcols = ip1_item], 
-                  options = list(pageLength = 10, autoWidth = TRUE, scrollX = TRUE))
-    
+    showdt <- jd18[IsSCI %in% ip1_coll &
+                     CASRanking %in% ip1_divi &
+                     Category %in% ip1_cate &
+                     Discipline %in% ip1_disc &
+                     IsTop %in% ip1_topj &
+                     IsReview %in% ip1_revi &
+                     PublicationCycle %in% ip1_freq &
+                     Region %in% ip1_loac,]
+    session$userData$showdt18 <- showdt
+    DT::datatable(showdt[, .SD, .SDcols = ip1_item], 
+                  escape = FALSE, 
+                  options = list(pageLength = 10, autoWidth = TRUE, scrollX = TRUE),
+                  selection = list(mode = "multiple", target = "row"))
   })
   
   ########################
@@ -158,8 +161,12 @@ server <- function(input, output) {
       sig2 <- seq(T, nrow(jd22))
     }
     
-    showdt <- jd22[sig1&sig2,]  %>% .[rank %in% ip2_quar, .SD, .SDcols = ip2_item]
-    DT::datatable(showdt, options = list(pageLength = 10, autoWidth = TRUE, scrollX = TRUE))
+    showdt <- jd22[sig1&sig2,]  %>% .[rank %in% ip2_quar,]
+    session$userData$showdt22 <- showdt
+    DT::datatable(showdt[, .SD, .SDcols = ip2_item], 
+                  escape = FALSE, 
+                  options = list(pageLength = 10, autoWidth = TRUE, scrollX = TRUE),
+                  selection = list(mode = "multiple", target = "row"))
   })
   
   ########################
@@ -249,12 +256,69 @@ server <- function(input, output) {
     
     sig <- sig_cate1&sig_cate2&sig_eval&sig_freq&sig_lang&sig_stat
     
-    showdt <- jdch[sig, .SD, .SDcols = ip3_item]
+    showdt <- jdch[sig,]
     # names(showdt) <- c("ISSN", "CN", "刊名", "译名", "曾用刊名",
     #                    "一级分类", "二级分类", "复合IF", "综合IF", "出版量",
     #                    "下载量", "引用量", "收录", "主办单位", "出版地",
     #                    "出版周期", "语言", "开本", "邮发代号", "创刊时间",
     #                    "当前状态", "知网链接")
-    DT::datatable(showdt, options = list(pageLength = 10, autoWidth = TRUE, scrollX = TRUE))
+    session$userData$showdtch <- showdt
+    DT::datatable(showdt[, .SD, .SDcols = ip3_item], 
+                  escape = FALSE, 
+                  options = list(pageLength = 10, autoWidth = TRUE, scrollX = TRUE), 
+                  selection=list(mode = "multiple", target = "row"))
   })
+  
+  ########################
+  #### 8. Mains ####
+  output$ui_main_selected    <- renderUI({
+    tagList(
+      h3("已选期刊"),
+      hr(),
+      h4("英文LetPub版："),
+      DT::dataTableOutput("dataselect18"),
+      hr(),
+      h4("英文JCR版："),
+      DT::dataTableOutput("dataselect22"),
+      hr(),
+      h4("中文CNKI版："),
+      DT::dataTableOutput("dataselectch")
+    )
+  })
+  
+  row18 <- reactive({input$table1_rows_selected})
+  row22 <- reactive({input$table2_rows_selected})
+  rowch <- reactive({input$table3_rows_selected})
+  
+  output$dataselect18 <- DT::renderDT(
+    datatable(session$userData$showdt18[row18(),], 
+              escape = FALSE,
+              options = list(pageLength = 100, 
+                             autoWidth = TRUE, 
+                             scrollX = TRUE, 
+                             searching = FALSE, 
+                             lengthChange = FALSE))
+  )
+  
+  output$dataselect22 <- DT::renderDT(
+    datatable(session$userData$showdt22[row22(),], 
+              escape = FALSE, 
+              options = list(pageLength = 100, 
+                             autoWidth = TRUE, 
+                             scrollX = TRUE, 
+                             searching = FALSE, 
+                             lengthChange = FALSE))
+  )
+  output$dataselectch <- DT::renderDT(
+    datatable(session$userData$showdtch[rowch(), -1], 
+              escape = FALSE, 
+              options = list(pageLength = 100, 
+                             autoWidth = TRUE, 
+                             scrollX = TRUE, 
+                             searching = FALSE, 
+                             lengthChange = FALSE))
+  )
+  
+  
+  
 }
