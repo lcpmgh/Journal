@@ -11,8 +11,8 @@ library(shinyWidgets)
 library(showtext)
 
 ui <- fluidPage(
-  tags$head(tags$title("journal")),
-  tags$head(tags$link(rel = "shortcut icon", href = "pmgh.ico")),
+  tags$head(tags$title("Journal")),
+  tags$head(tags$link(rel = "shortcut icon", href = "journal.ico")),
   titlePanel("学术期刊质量查询系统"),
   tabsetPanel(id = "mainPanel",
               type = "pills",
@@ -42,15 +42,19 @@ ui <- fluidPage(
   #   mainPanel(uiOutput("ui_main"))
   # ),
   tags$hr(),
-  tags$div(align = "center", 
-           tags$p("\ua9 2021-2022, LIANG Chen, Institute of Mountain Hazards and Environment, CAS. All rights reserved.", style="height:8px"),
-           actionLink(inputId = "", label = "Github", icon = icon("github"), onclick ="window.open('https://github.com/lcpmgh/Journal')"),
-           tags$p("  ", style = "display:inline;white-space:pre"),
-           tags$p("Email: lcpmgh@gmail.com", style="display:inline;white-space:pre"),  
+  tags$div(align = "center", style = "margin-bottom: 10px;",
+           tags$p("\ua9 2021-2026, Lcpmgh, All rights reserved.", style="height:8px"),
+           tags$div(align = "center",
+                    actionLink(inputId = "", label = "lcpmgh ", icon = icon("github"), onclick ="window.open('https://github.com/lcpmgh')"),
+                    tags$p("  ", style = "display:inline;white-space:pre"),
+                    actionLink(inputId = "", label = "lcpmgh@gmail.com", icon = icon("envelope"), onclick ="window.location.href='mailto:lcpmgh@gmail.com'"),
+                    tags$p("  ", style = "display:inline;white-space:pre"),
+                    actionLink(inputId = "", label = "lcpmgh.com", icon = icon("home"), onclick ="window.location.href='http://lcpmgh.com/'")
+           ),
            tags$div(align = "center",
                     tags$a("冀ICP备2022003075号", target="_blank", href="https://beian.miit.gov.cn", style="color:#06c; display:inline;"),
                     tags$p("  ", style = "display:inline;white-space:pre"),
-                    tags$img(src="gaba.png"),
+                    # tags$img(src="gaba.png"),
                     tags$a("川公网安备51010702002736", target="_blank", href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=51010702002736", style="color:#06c; display:inline;")
            )
   )

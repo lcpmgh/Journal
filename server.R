@@ -12,10 +12,10 @@ server <- function(input, output, session) {
   
   cate22 <- fread("./journal2022category.csv", header = T, sep = ",")$cate
   
-  catech1 <- jdch$category1 %>% unique() %>% str_split("；") %>% unlist() %>% unique() %>% .[order(.)]
-  catech2 <- jdch$category2 %>% unique() %>% str_split("；") %>% unlist() %>% unique() %>% .[order(.)]
-  evalch   <- jdch$evaluation %>% str_split("/") %>% unlist() %>% unique() %>% .[order(.)] %>% .[-1] %>% append("-")
-  freqch   <- jdch$frequency %>% unique() %>% .[order(.)] %>% .[-1] %>% append("-")
+  catech1 <- jdch$category1  %>% unique() %>% str_split("；") %>% unlist() %>% unique() %>% .[order(.)]
+  catech2 <- jdch$category2  %>% unique() %>% str_split("；") %>% unlist() %>% unique() %>% .[order(.)]
+  evalch  <- jdch$evaluation %>% str_split("/") %>% unlist() %>% unique() %>% .[order(.)] %>% .[-1] %>% append("-")
+  freqch  <- jdch$frequency  %>% unique() %>% .[order(.)] %>% .[-1] %>% append("-")
   
   item18 <- names(jd18)
   item22 <- names(jd22)
@@ -176,7 +176,7 @@ server <- function(input, output, session) {
       pickerInput(inputId = "inp3_item",
                   label = "展示条目", 
                   choices = itemch,
-                  selected = itemch[c(3,6,7,8,10,13,21)],
+                  selected = itemch[c(3,6,7,8,10,13,16)],
                   options = list(`selected-text-format` = "count > 3", `actions-box` = TRUE),
                   multiple = TRUE),
       h4(strong("属性筛选")),
