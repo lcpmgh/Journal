@@ -202,7 +202,7 @@ server <- function(input, output, session) {
   #### 03. main：   letpub ####
   output$main_letpub    <- renderUI({
     tagList(
-      h3("LetPub 2018年期刊数据"),
+      h3("LetPub 2018年数据"),
       tags$hr(),
       DT::dataTableOutput("table_letpub")
     )})
@@ -326,7 +326,7 @@ server <- function(input, output, session) {
   #### 05. main：   dat_jcr ####
   output$main_jcr    <- renderUI({
     tagList(
-      h3("JCR 2025年期刊数据"),
+      h3("JCR 2019-2025年数据"),
       tags$hr(),
       DT::dataTableOutput("table_jcr")
     )})
@@ -415,7 +415,7 @@ server <- function(input, output, session) {
   #### 07. main：   jdat_xr ####
   output$main_xr       <- renderUI({
     tagList(
-      h3("新锐分区 2026年期刊数据"),
+      h3("新锐分区 2026年数据"),
       tags$hr(),
       DT::dataTableOutput("table_xr")
     )})
@@ -507,7 +507,7 @@ server <- function(input, output, session) {
   #### 09. main：   jdat_cnki ####
   output$main_cnki    <- renderUI({
     tagList(
-      h3("CNKI 2022年期刊数据"),
+      h3("CNKI 2022年数据"),
       tags$hr(),
       DT::dataTableOutput("table_cnki")
     )})
