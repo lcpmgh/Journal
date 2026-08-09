@@ -103,7 +103,6 @@ server <- function(input, output, session) {
   # 数据处理
   cate_jcr    <- jdat_jcr$Category %>% unique() %>% sort()
   cate_xr     <- jdat_xr$Category %>% unique() %>% sort()
-  
   cate_cnki_1 <- jdat_cnki$category1  %>% unique() %>% str_split("；") %>% unlist() %>% unique() %>% .[order(.)]
   cate_cnki_2 <- jdat_cnki$category2  %>% unique() %>% str_split("；") %>% unlist() %>% unique() %>% .[order(.)]
   eval_cnki   <- jdat_cnki$evaluation %>% str_split("/") %>% unlist() %>% unique() %>% .[order(.)] %>% .[-1] %>% append("-")
