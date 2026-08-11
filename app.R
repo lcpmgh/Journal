@@ -7,6 +7,7 @@ library(stringr)
 library(magrittr)
 library(data.table)
 library(shinyWidgets)
+library(echarty)
 
 ########## ui ##########
 ui <- fluidPage(
@@ -30,13 +31,6 @@ ui <- fluidPage(
     id = "mainPanel",
     type = "pills",
     tabPanel(
-      title = "LetPub",
-      sidebarLayout(
-        sidebarPanel(width=3, uiOutput("sidebar_letpub")),
-        mainPanel(uiOutput("main_letpub"))
-      )
-    ),
-    tabPanel(
       title = "JCR",
       sidebarLayout(
         sidebarPanel(width = 3, uiOutput("sidebar_jcr")),
@@ -48,6 +42,13 @@ ui <- fluidPage(
       sidebarLayout(
         sidebarPanel(width = 3, uiOutput("sidebar_xr")),
         mainPanel(uiOutput("main_xr"))
+      )
+    ),
+    tabPanel(
+      title = "LetPub",
+      sidebarLayout(
+        sidebarPanel(width=3, uiOutput("sidebar_letpub")),
+        mainPanel(uiOutput("main_letpub"))
       )
     ),
     tabPanel(
@@ -95,9 +96,9 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   #### 01. Load dataset ####
   # 原始数据
-  jdat_letpub <- fread('./journal_letpub_2018.csv', stringsAsFactors=F, encoding = "UTF-8")
   jdat_jcr    <- fread('./journal_jcr_2025.csv', stringsAsFactors=F, encoding = "UTF-8") %>% setorder(-JCR_yr, -JIF, na.last=T)
   jdat_cnki   <- fread('./journal_cnki_2022.csv', stringsAsFactors=F, encoding = "UTF-8")
+  jdat_letpub <- fread('./journal_letpub_2018.csv', stringsAsFactors=F, encoding = "UTF-8")
   jdat_xr     <- fread('./journal_xr_2026.csv', stringsAsFactors=F, encoding = "UTF-8") %>% setorder(Category, Serial_number)
   
   # 数据处理
@@ -108,9 +109,9 @@ server <- function(input, output, session) {
   eval_cnki   <- jdat_cnki$evaluation %>% str_split("/") %>% unlist() %>% unique() %>% .[order(.)] %>% .[-1] %>% append("-")
   freq_cnki   <- jdat_cnki$frequency  %>% unique() %>% .[order(.)] %>% .[-1] %>% append("-")
   
-  item_letpub <- names(jdat_letpub)
   item_jcr    <- names(jdat_jcr)
   item_xr     <- names(jdat_xr)
+  item_letpub <- names(jdat_letpub)
   item_cnki   <- names(jdat_cnki) %>% .[-1]
   
   year_jcr <- jdat_jcr$JCR_yr %>% unique()  %>% sort(decreasing=T)
@@ -123,8 +124,325 @@ server <- function(input, output, session) {
   rank_xr  <- jdat_xr$Journal_ranking %>% unique() %>% sort()
   names(rank_xr) <- paste0(rank_xr, "区")
   
+  ########################
+  #### 02. sidebar：jdat_jcr ####
+  output$sidebar_jcr <- renderUI({
+    tagList(
+      pickerInput(
+        inputId  = "inp2_item",
+        label    = "展示列项目", 
+        choices  = item_jcr,
+        selected = item_jcr[c(1,2,5,8,17,18)],
+        options  = pickerOptions(container="body", liveSearch=TRUE, actionsBox=TRUE, `selected-text-format`="count > 3", `actions-box`=TRUE),
+        multiple = TRUE
+      ),
+      h4(strong("属性筛选")),
+      pickerInput(
+        inputId  = "inp2_cate",
+        label    = "期刊分类", 
+        choices  = cate_jcr,
+        options  = pickerOptions(container="body", liveSearch=TRUE, actionsBox=TRUE, `selected-text-format`="count > 3", `actions-box`=TRUE),
+        multiple = TRUE
+      ),
+      pickerInput(
+        inputId  = "inp2_yr",
+        label    = "年份", 
+        choices  = year_jcr,
+        selected = year_jcr[1],
+        options  = pickerOptions(container="body", actionsBox=TRUE, `selected-text-format`="count > 3", `actions-box`=TRUE),
+        multiple = TRUE
+      ),
+      checkboxGroupButtons(
+        inputId   = "inp2_ed",
+        label     = "引文索引数据库", 
+        choices   = edit_jcr,
+        selected  = "SCIE",
+        status    = "primary",
+        size      = 'xs',
+        checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove",lib = "glyphicon"))
+      ),
+      checkboxGroupButtons(
+        inputId   = "inp2_jci",
+        label     = "JCI分区", 
+        choices   = jciq_jcr,
+        selected  = jciq_jcr,
+        status    = "primary",
+        size      = 'xs',
+        checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove",lib = "glyphicon"))
+      ),
+      checkboxGroupButtons(
+        inputId   = "inp2_jif",
+        label     = "JIF分区", 
+        choices   = jifq_jcr,
+        selected  = jifq_jcr,
+        status    = "primary",
+        size      = 'xs',
+        checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove",lib = "glyphicon"))
+      ),
+      checkboxGroupButtons(
+        inputId   = "inp2_ais",
+        label     = "AIS分区", 
+        choices   = aisq_jcr,
+        selected  = aisq_jcr,
+        status    = "primary",
+        size      = 'xs',
+        checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove",lib = "glyphicon"))
+      ),
+      h4(strong("查找期刊")),
+      searchInput(
+        inputId     = "inp2_search_content",
+        label       = NULL,
+        placeholder = "查找...",
+        btnSearch = icon("magnifying-glass"),
+        btnReset = icon("xmark")
+      ),
+      div(
+        style = "display: flex; justify-content: center; width: 100%; ",
+        prettySwitch(
+          inputId = "inp2_search_precise",
+          label   = "精确查找",
+          status  = "primary",
+          fill    = TRUE
+        )
+      ),
+      hr(),
+      div(
+        style = "display: flex; align-items: center; gap: 20px;",
+        h4(strong("查看趋势")),
+        actionButton(inputId="clear_sel", "清除选择", icon("eraser"))
+      ),
+      pickerInput(
+        inputId  = "inp2_trend_item",
+        label    = "选择指标", 
+        choices  = c("JIF", "Total_Articles", "OA_percent", "Total_Citations"),
+        selected = "JIF",
+        multiple = F
+      ),
+      ecs.output("inp2_sidebar_plot", height = "300px")
+    )
+  })
+  #### 03. main：   dat_jcr ####
+  output$main_jcr    <- renderUI({
+    tagList(
+      h3("JCR 2019-2025年数据"),
+      tags$hr(),
+      DT::dataTableOutput("table_jcr")
+    )})
+  output$table_jcr   <- DT::renderDataTable({
+    item <- c(input$inp2_item, "group")
+    yr <- input$inp2_yr
+    jc <- input$inp2_jci
+    ji <- input$inp2_jif
+    ai <- input$inp2_ais
+    ca <- input$inp2_cate
+    ed <- input$inp2_ed
+    
+    if(length(ca)==0) ca <- cate_jcr
+    scarch_p <- input$inp2_search_precise
+    
+    ed_or   <- jdat_jcr$Edition %>% unique()
+    ed_or_s <- ed_or[sapply(strsplit(ed_or, "/"), \(i) any(ed %in% i))]   #匿名函数/(i)等价于 function(i)
+    showdt  <- jdat_jcr[Edition %in% ed_or_s, ] %>% 
+      .[JCR_yr %in% yr & JCI_Quartile %in% jc & JIF_Quartile %in% ji & AIS_Quartile %in% ai & Category %in% ca, .SD, .SDcols=item] 
+    
+    # 查找期刊
+    if (nzchar(input$inp2_search_content)) {
+      if(scarch_p){
+        showdt <- showdt[trimws(tolower(Journal_name)) == trimws(tolower(input$inp2_search_content))]
+      } else {
+        showdt <- showdt[grepl(tolower(input$inp2_search_content), tolower(Journal_name), fixed=TRUE)]
+      }
+    }
+    
+    # 输出表格
+    session$userData$showdt_jcr   <- showdt[,!"group"]   #返回输出表格
+    session$userData$showdt_jcr_g <- showdt$group        #返回输出表格的group id
+    DT::datatable(
+      showdt[,!"group"] , 
+      escape = FALSE, 
+      options = list(pageLength = 50, autoWidth = TRUE, scrollX = TRUE),
+      selection = list(mode = "multiple", target = "row")
+    )
+  })
+  row_jcr            <- reactive({input$table_jcr_rows_selected})
+  proxy <- dataTableProxy("table_jcr")                          #创建datatable代理
+  observeEvent(input$clear_sel, {proxy %>% selectRows(NULL)})   #清除选择
+  output$inp2_sidebar_plot <- ecs.render({
+    # 如果没选则画提示信息
+    if(length(row_jcr())<1){
+      p <- ec.init(
+        graphic = list(
+          type = "text",
+          left = "center",
+          top = "middle",
+          style = list(
+            text = "点击表格\n展示对应期刊信息",
+            fontSize = 15,
+            lineHeight = 20,
+            fontWeight = "bold",
+            fill = "red",
+            textAlign = "center",
+            textVerticalAlign = "middle"
+          )
+        ),
+        xAxis = list(show = FALSE),
+        yAxis = list(show = FALSE),
+        tooltip = list(show = FALSE)
+      )
+      return(p)
+    }
+    
+    # 如果不是，正常画图
+    col_show <- input$inp2_trend_item
+    row_id <- row_jcr()[1]
+    group_id <- session$userData$showdt_jcr_g[row_id]
+    tdat1 <- jdat_jcr[group==group_id,]
+    tdat2 <- tdat1 %>% .[,max(.SD, na.rm=T), by="JCR_yr", .SDcols=col_show] %>% set_colnames(c("v1", "v2")) %>% setorder(v1)
+    journal_name <- tdat1$Journal_name[1]
+    ymin   <- tdat2$v2 %>% min()
+    ymax   <- tdat2$v2 %>% max()
+    yrange <- ymax-ymin
+    yupper <- ((ymax+0.10*yrange)) %>% ceiling()
+    ylower <- ((ymin-0.10*yrange)) %>% floor() %>% max(0)
+    plotdt <- tdat2 %>% .[data.table(v1=2019:2025),on="v1"]
+    ec.init(
+      color = "#56B4E9",
+      title = list(text=journal_name, textStyle=list(fontSize=11)),
+      series = list(
+        list(
+          type = "line", 
+          name = col_show, 
+          data = plotdt$v2, 
+          label = list(normal = list(show=TRUE, position="top", textStyle=list(fontSize=10)))
+        )
+      ),
+      xAxis = list(
+        type = "category", 
+        data = plotdt$v1,
+        name="Year",
+        boundaryGap = TRUE,          #离散x轴，两端是否gap
+        nameLocation = "middle",
+        nameTextStyle = list(fontSize = 10, padding = c(10, 0, 0, 0)), 
+        axisLine = list(show = TRUE, lineStyle = list(color = "black")),
+        axisTick = list(show = T, alignWithLabel =T),
+        axisLabel = list(fontSize = 10 , padding = c(0, 0, 0, 0)
+        )
+      ),
+      yAxis = list(
+        type="value", 
+        name=col_show,
+        min=ylower,
+        max=yupper,
+        nameTextStyle = list(fontSize = 10, padding = c(0, 0, 0, 0)),
+        nameLocation = "middle",
+        nameRotate = 90,
+        nameGap = 0,
+        axisLine = list(show = TRUE, lineStyle = list(color = "black")),
+        axisLabel = list(fontSize = 10 , padding = c(0, 0, 0, 0)
+        )
+      ),
+      tooltip = list(
+        trigger = "axis",
+        formatter = JS("
+          function(params) {
+            let result = params[0].name + '年<br>';
+            params.forEach(function(item) {
+              if (item.value !== null && item.value !== undefined && item.value !== '-') {
+                result += item.marker + ' ' + item.seriesName + ': ' + item.value + '<br>';
+              }
+            });
+            return result;
+          }
+        ")  
+      ),
+      legend = list(show=F),
+      grid = list(left="1%", right="1%", bottom="1%")
+    )
+  })
+  
+  ########################
+  #### 04. sidebar：jdat_xr ####
+  output$sidebar_xr    <- renderUI({
+    tagList(
+      pickerInput(
+        inputId  = "inp3_item",
+        label    = "展示列项目", 
+        choices  = item_xr,
+        selected = item_xr[c(1,2,3,6)],
+        options  = pickerOptions(container="body", liveSearch=TRUE, actionsBox=TRUE, `selected-text-format`="count > 3", `actions-box`=TRUE),
+        multiple = TRUE
+      ),
+      h4(strong("属性筛选")),
+      pickerInput(
+        inputId  = "inp3_cate",
+        label    = "期刊分类", 
+        choices  = cate_xr,
+        options  = pickerOptions(container="body", liveSearch=TRUE, actionsBox=TRUE, `selected-text-format`="count > 3", `actions-box`=TRUE),
+        multiple = TRUE
+      ),
+      checkboxGroupButtons(
+        inputId   = "inp3_rank",
+        label     = "分区", 
+        choices   = rank_xr,
+        selected  = rank_xr[1],
+        status    = "primary",
+        size      = 'xs',
+        checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove",lib = "glyphicon"))
+      ),
+      h4(strong("查找期刊")),
+      searchInput(
+        inputId     = "inp3_search_content",
+        label       = NULL,
+        placeholder = "查找...",
+        btnSearch = icon("magnifying-glass"),
+        btnReset = icon("xmark")
+      ),
+      div(
+        style = "display: flex; justify-content: center; width: 100%; ",
+        prettySwitch(
+          inputId = "inp3_search_precise",
+          label   = "精确查找",
+          status  = "primary",
+          fill    = TRUE
+        )
+      )
+    )
+  })
+  #### 05. main：   jdat_xr ####
+  output$main_xr       <- renderUI({
+    tagList(
+      h3("新锐分区 2026年数据"),
+      tags$hr(),
+      DT::dataTableOutput("table_xr")
+    )})
+  output$table_xr      <- DT::renderDataTable({
+    item <- input$inp3_item
+    ca <- input$inp3_cate
+    ra <- input$inp3_rank
+    if(length(ca)==0) ca <- cate_xr
+    scarch_p <- input$inp3_search_precise
+    
+    showdt  <- jdat_xr[Category %in% ca & Journal_ranking %in% ra, .SD, .SDcols=item] 
+    
+    # 查找期刊
+    if (nzchar(input$inp3_search_content)) {
+      if(scarch_p){
+        showdt <- showdt[trimws(tolower(Journal_name)) == trimws(tolower(input$inp3_search_content))]
+      } else {
+        showdt <- showdt[grepl(tolower(input$inp3_search_content), tolower(Journal_name), fixed=TRUE)]
+      }
+    }
+    
+    # 输出表格
+    session$userData$showdt_xr <- showdt
+    DT::datatable(showdt, 
+                  escape = FALSE, 
+                  options = list(pageLength = 10, autoWidth = TRUE, scrollX = TRUE),
+                  selection = list(mode = "multiple", target = "row"))
+  })
+  
   ########################  
-  #### 02. sidebar：letpub ####
+  #### 06. sidebar：letpub ####
   output$sidebar_letpub <- renderUI({
     tagList(
       pickerInput(
@@ -198,8 +516,7 @@ server <- function(input, output, session) {
       )
     )
   })
-  
-  #### 03. main：   letpub ####
+  #### 07. main：   letpub ####
   output$main_letpub    <- renderUI({
     tagList(
       h3("LetPub 2018年数据"),
@@ -217,229 +534,15 @@ server <- function(input, output, session) {
     if(length(input$inp1_freq) != 0) ip1_freq <- input$inp1_freq else ip1_freq <- unique(jdat_letpub$PublicationCycle)
     if(length(input$inp1_loac) != 0) ip1_loac <- input$inp1_loac else ip1_loac <- unique(jdat_letpub$Region)
     showdt <- jdat_letpub[IsSCI %in% ip1_coll &
-                             CASRanking %in% ip1_divi &
-                             Category %in% ip1_cate &
-                             Discipline %in% ip1_disc &
-                             IsTop %in% ip1_topj &
-                             IsReview %in% ip1_revi &
-                             PublicationCycle %in% ip1_freq &
-                             Region %in% ip1_loac,]
+                            CASRanking %in% ip1_divi &
+                            Category %in% ip1_cate &
+                            Discipline %in% ip1_disc &
+                            IsTop %in% ip1_topj &
+                            IsReview %in% ip1_revi &
+                            PublicationCycle %in% ip1_freq &
+                            Region %in% ip1_loac,]
     session$userData$showdt_letpub <- showdt
     DT::datatable(showdt[, .SD, .SDcols = ip1_item], 
-                  escape = FALSE, 
-                  options = list(pageLength = 10, autoWidth = TRUE, scrollX = TRUE),
-                  selection = list(mode = "multiple", target = "row"))
-  })
-  
-  ########################
-  #### 04. sidebar：jdat_jcr ####
-  output$sidebar_jcr <- renderUI({
-    tagList(
-      pickerInput(
-        inputId  = "inp2_item",
-        label    = "展示列项目", 
-        choices  = item_jcr,
-        selected = item_jcr[c(1,2,5,8,17,18)],
-        options  = pickerOptions(container="body", liveSearch=TRUE, actionsBox=TRUE, `selected-text-format`="count > 3", `actions-box`=TRUE),
-        multiple = TRUE
-      ),
-      h4(strong("属性筛选")),
-      pickerInput(
-        inputId  = "inp2_cate",
-        label    = "期刊分类", 
-        choices  = cate_jcr,
-        options  = pickerOptions(container="body", liveSearch=TRUE, actionsBox=TRUE, `selected-text-format`="count > 3", `actions-box`=TRUE),
-        multiple = TRUE
-      ),
-      pickerInput(
-        inputId  = "inp2_yr",
-        label    = "年份", 
-        choices  = year_jcr,
-        selected = year_jcr[1],
-        options  = pickerOptions(container="body", actionsBox=TRUE, `selected-text-format`="count > 3", `actions-box`=TRUE),
-        multiple = TRUE
-      ),
-      checkboxGroupButtons(
-        inputId   = "inp2_ed",
-        label     = "引文索引数据库", 
-        choices   = edit_jcr,
-        selected  = "SCIE",
-        status    = "primary",
-        size      = 'xs',
-        checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove",lib = "glyphicon"))
-      ),
-      checkboxGroupButtons(
-        inputId   = "inp2_jci",
-        label     = "JCI分区", 
-        choices   = jciq_jcr,
-        selected  = jciq_jcr,
-        status    = "primary",
-        size      = 'xs',
-        checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove",lib = "glyphicon"))
-      ),
-      checkboxGroupButtons(
-        inputId   = "inp2_jif",
-        label     = "JIF分区", 
-        choices   = jifq_jcr,
-        selected  = jifq_jcr,
-        status    = "primary",
-        size      = 'xs',
-        checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove",lib = "glyphicon"))
-      ),
-      checkboxGroupButtons(
-        inputId   = "inp2_ais",
-        label     = "AIS分区", 
-        choices   = aisq_jcr,
-        selected  = aisq_jcr,
-        status    = "primary",
-        size      = 'xs',
-        checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove",lib = "glyphicon"))
-      ),
-      h4(strong("查找期刊")),
-      # pickerInput(
-      #   inputId  = "inp2_search_col",
-      #   label    = "搜索列", 
-      #   choices  = year_jcr,
-      #   selected = year_jcr[1],
-      #   multiple = F
-      # ),
-      
-      searchInput(
-        inputId     = "inp2_search_content",
-        label       = NULL,
-        placeholder = "查找...",
-        btnSearch = icon("magnifying-glass"),
-        btnReset = icon("xmark")
-      ),
-      div(
-        style = "display: flex; justify-content: center; width: 100%; ",
-        prettySwitch(
-          inputId = "inp2_search_precise",
-          label   = "精确查找",
-          status  = "primary",
-          fill    = TRUE
-        )
-      )
-    )
-  })
-  
-  #### 05. main：   dat_jcr ####
-  output$main_jcr    <- renderUI({
-    tagList(
-      h3("JCR 2019-2025年数据"),
-      tags$hr(),
-      DT::dataTableOutput("table_jcr")
-    )})
-  output$table_jcr   <- DT::renderDataTable({
-    item <- input$inp2_item
-    yr <- input$inp2_yr
-    jc <- input$inp2_jci
-    ji <- input$inp2_jif
-    ai <- input$inp2_ais
-    ca <- input$inp2_cate
-    ed <- input$inp2_ed
-    
-    if(length(ca)==0) ca <- cate_jcr
-    scarch_p <- input$inp2_search_precise
-    
-    ed_or   <- jdat_jcr$Edition %>% unique()
-    ed_or_s <- ed_or[sapply(strsplit(ed_or, "/"), \(i) any(ed %in% i))]   #匿名函数/(i)等价于 function(i)
-    showdt  <- jdat_jcr[Edition %in% ed_or_s, ] %>% 
-      .[JCR_yr %in% yr & JCI_Quartile %in% jc & JIF_Quartile %in% ji & AIS_Quartile %in% ai & Category %in% ca, .SD, .SDcols=item] 
-    
-    # 查找期刊
-    if (nzchar(input$inp2_search_content)) {
-      if(scarch_p){
-        showdt <- showdt[trimws(tolower(Journal_name)) == trimws(tolower(input$inp2_search_content))]
-      } else {
-        showdt <- showdt[grepl(tolower(input$inp2_search_content), tolower(Journal_name), fixed=TRUE)]
-      }
-    }
-   
-    # 输出表格
-    session$userData$showdt_jcr <- showdt
-    DT::datatable(showdt, 
-                  escape = FALSE, 
-                  options = list(pageLength = 10, autoWidth = TRUE, scrollX = TRUE),
-                  selection = list(mode = "multiple", target = "row"))
-  })
-  
-  ########################
-  #### 06. sidebar：jdat_xr ####
-  output$sidebar_xr    <- renderUI({
-    tagList(
-      pickerInput(
-        inputId  = "inp3_item",
-        label    = "展示列项目", 
-        choices  = item_xr,
-        selected = item_xr[c(1,2,3,6)],
-        options  = pickerOptions(container="body", liveSearch=TRUE, actionsBox=TRUE, `selected-text-format`="count > 3", `actions-box`=TRUE),
-        multiple = TRUE
-      ),
-      h4(strong("属性筛选")),
-      pickerInput(
-        inputId  = "inp3_cate",
-        label    = "期刊分类", 
-        choices  = cate_xr,
-        options  = pickerOptions(container="body", liveSearch=TRUE, actionsBox=TRUE, `selected-text-format`="count > 3", `actions-box`=TRUE),
-        multiple = TRUE
-      ),
-      checkboxGroupButtons(
-        inputId   = "inp3_rank",
-        label     = "分区", 
-        choices   = rank_xr,
-        selected  = rank_xr[1],
-        status    = "primary",
-        size      = 'xs',
-        checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove",lib = "glyphicon"))
-      ),
-      h4(strong("查找期刊")),
-      searchInput(
-        inputId     = "inp3_search_content",
-        label       = NULL,
-        placeholder = "查找...",
-        btnSearch = icon("magnifying-glass"),
-        btnReset = icon("xmark")
-      ),
-      div(
-        style = "display: flex; justify-content: center; width: 100%; ",
-        prettySwitch(
-          inputId = "inp3_search_precise",
-          label   = "精确查找",
-          status  = "primary",
-          fill    = TRUE
-        )
-      )
-    )
-  })
-  #### 07. main：   jdat_xr ####
-  output$main_xr       <- renderUI({
-    tagList(
-      h3("新锐分区 2026年数据"),
-      tags$hr(),
-      DT::dataTableOutput("table_xr")
-    )})
-  output$table_xr      <- DT::renderDataTable({
-    item <- input$inp3_item
-    ca <- input$inp3_cate
-    ra <- input$inp3_rank
-    if(length(ca)==0) ca <- cate_xr
-    scarch_p <- input$inp3_search_precise
-    
-    showdt  <- jdat_xr[Category %in% ca & Journal_ranking %in% ra, .SD, .SDcols=item] 
-    
-    # 查找期刊
-    if (nzchar(input$inp3_search_content)) {
-      if(scarch_p){
-        showdt <- showdt[trimws(tolower(Journal_name)) == trimws(tolower(input$inp3_search_content))]
-      } else {
-        showdt <- showdt[grepl(tolower(input$inp3_search_content), tolower(Journal_name), fixed=TRUE)]
-      }
-    }
-    
-    # 输出表格
-    session$userData$showdt_xr <- showdt
-    DT::datatable(showdt, 
                   escape = FALSE, 
                   options = list(pageLength = 10, autoWidth = TRUE, scrollX = TRUE),
                   selection = list(mode = "multiple", target = "row"))
@@ -561,12 +664,9 @@ server <- function(input, output, session) {
   
   ########################
   #### 10. Main：   对比 ####
-  output$ui_main_selected    <- renderUI({
+  output$ui_main_selected <- renderUI({
     tagList(
       h3("已选期刊："),
-      hr(),
-      h4("LetPub页："),
-      DT::dataTableOutput("jdat_letpub"),
       hr(),
       h4("JCR页："),
       DT::dataTableOutput("jdat_jcr"),
@@ -574,27 +674,17 @@ server <- function(input, output, session) {
       h4("新锐分区页："),
       DT::dataTableOutput("jdat_xr"),
       hr(),
+      h4("LetPub页："),
+      DT::dataTableOutput("jdat_letpub"),
+      hr(),
       h4("CNKI页："),
       DT::dataTableOutput("jdat_cnki")
     )
   })
-  row_latpub <- reactive({input$table_letpub_rows_selected})
-  row_jcr    <- reactive({input$table_jcr_rows_selected})
-  row_xr     <- reactive({input$table_xr_rows_selected})
-  row_cnki   <- reactive({input$table_cnki_rows_selected})
-  output$jdat_letpub <- DT::renderDataTable({
-    datatable(
-      session$userData$showdt_letpub[row_latpub(),], 
-      escape = FALSE,
-      options = list(
-        pageLength = 100, 
-        autoWidth = TRUE, 
-        scrollX = TRUE, 
-        searching = FALSE, 
-        lengthChange = FALSE
-      )
-    )
-  })
+  # row_jcr            <- reactive({input$table_jcr_rows_selected})
+  row_xr             <- reactive({input$table_xr_rows_selected})
+  row_latpub         <- reactive({input$table_letpub_rows_selected})
+  row_cnki           <- reactive({input$table_cnki_rows_selected})
   output$jdat_jcr    <- DT::renderDataTable({
     datatable(
       session$userData$showdt_jcr[row_jcr(),], 
@@ -612,6 +702,19 @@ server <- function(input, output, session) {
     datatable(
       session$userData$showdt_xr[row_xr(),], 
       escape = FALSE, 
+      options = list(
+        pageLength = 100, 
+        autoWidth = TRUE, 
+        scrollX = TRUE, 
+        searching = FALSE, 
+        lengthChange = FALSE
+      )
+    )
+  })
+  output$jdat_letpub <- DT::renderDataTable({
+    datatable(
+      session$userData$showdt_letpub[row_latpub(),], 
+      escape = FALSE,
       options = list(
         pageLength = 100, 
         autoWidth = TRUE, 
