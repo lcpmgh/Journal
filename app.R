@@ -12,17 +12,16 @@ library(echarty)
 ########## ui ##########
 ui <- fluidPage(
   tags$script(HTML("
-  $(document).on('keydown', '[id$=\"_search_content\"]', function(e) {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-  
-      Shiny.setInputValue(
-        this.id,
-        $(this).val(),
-        {priority: 'event'}
-      );
-    }
-  });
+    $(document).on('keydown', '[id$=\"_search_content\"]', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        Shiny.setInputValue(
+          this.id,
+          $(this).val(),
+          {priority: 'event'}
+        );
+      }
+    });
   ")),
   tags$head(tags$title("Journal")),
   tags$head(tags$link(rel = "shortcut icon", href = "journal.ico")),
@@ -94,7 +93,7 @@ ui <- fluidPage(
 
 ########## server ##########
 server <- function(input, output, session) {
-  #### 01. Load dataset ####
+  #### 1. Load dataset ####
   # 原始数据
   jdat_jcr    <- fread('./journal_jcr_2025.csv', stringsAsFactors=F, encoding = "UTF-8") %>% setorder(-JCR_yr, -JIF, na.last=T)
   jdat_cnki   <- fread('./journal_cnki_2022.csv', stringsAsFactors=F, encoding = "UTF-8")
@@ -124,12 +123,15 @@ server <- function(input, output, session) {
   rank_xr  <- jdat_xr$Journal_ranking %>% unique() %>% sort()
   names(rank_xr) <- paste0(rank_xr, "区")
   
+  trend_item <- c("JIF", "Total_Articles", "OA_percent", "Citable_Items", "Total_Citations")
+  
   ########################
-  #### 02. sidebar：jdat_jcr ####
+  #### 2. jcr ####
+  # sidebar
   output$sidebar_jcr <- renderUI({
     tagList(
       pickerInput(
-        inputId  = "inp2_item",
+        inputId  = "jcr_item",
         label    = "展示列项目", 
         choices  = item_jcr,
         selected = item_jcr[c(1,2,5,8,17,18)],
@@ -138,14 +140,14 @@ server <- function(input, output, session) {
       ),
       h4(strong("属性筛选")),
       pickerInput(
-        inputId  = "inp2_cate",
+        inputId  = "jcr_cate",
         label    = "期刊分类", 
         choices  = cate_jcr,
         options  = pickerOptions(container="body", liveSearch=TRUE, actionsBox=TRUE, `selected-text-format`="count > 3", `actions-box`=TRUE),
         multiple = TRUE
       ),
       pickerInput(
-        inputId  = "inp2_yr",
+        inputId  = "jcr_yr",
         label    = "年份", 
         choices  = year_jcr,
         selected = year_jcr[1],
@@ -153,7 +155,7 @@ server <- function(input, output, session) {
         multiple = TRUE
       ),
       checkboxGroupButtons(
-        inputId   = "inp2_ed",
+        inputId   = "jcr_ed",
         label     = "引文索引数据库", 
         choices   = edit_jcr,
         selected  = "SCIE",
@@ -162,7 +164,7 @@ server <- function(input, output, session) {
         checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove",lib = "glyphicon"))
       ),
       checkboxGroupButtons(
-        inputId   = "inp2_jci",
+        inputId   = "jcr_jci",
         label     = "JCI分区", 
         choices   = jciq_jcr,
         selected  = jciq_jcr,
@@ -171,7 +173,7 @@ server <- function(input, output, session) {
         checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove",lib = "glyphicon"))
       ),
       checkboxGroupButtons(
-        inputId   = "inp2_jif",
+        inputId   = "jcr_jif",
         label     = "JIF分区", 
         choices   = jifq_jcr,
         selected  = jifq_jcr,
@@ -180,7 +182,7 @@ server <- function(input, output, session) {
         checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove",lib = "glyphicon"))
       ),
       checkboxGroupButtons(
-        inputId   = "inp2_ais",
+        inputId   = "jcr_ais",
         label     = "AIS分区", 
         choices   = aisq_jcr,
         selected  = aisq_jcr,
@@ -190,16 +192,16 @@ server <- function(input, output, session) {
       ),
       h4(strong("查找期刊")),
       searchInput(
-        inputId     = "inp2_search_content",
+        inputId     = "jcr_search_content",
         label       = NULL,
         placeholder = "查找...",
-        btnSearch = icon("magnifying-glass"),
-        btnReset = icon("xmark")
+        btnSearch   = icon("magnifying-glass"),
+        btnReset    = icon("xmark")
       ),
       div(
         style = "display: flex; justify-content: center; width: 100%; ",
         prettySwitch(
-          inputId = "inp2_search_precise",
+          inputId = "jcr_search_precise",
           label   = "精确查找",
           status  = "primary",
           fill    = TRUE
@@ -211,17 +213,37 @@ server <- function(input, output, session) {
         h4(strong("查看趋势")),
         actionButton(inputId="clear_sel", "清除选择", icon("eraser"))
       ),
-      pickerInput(
-        inputId  = "inp2_trend_item",
-        label    = "选择指标", 
-        choices  = c("JIF", "Total_Articles", "OA_percent", "Total_Citations"),
-        selected = "JIF",
-        multiple = F
+      
+      div(
+        style = "display: flex; align-items: center; gap:1px;  width:100%;",
+        div(
+          style = "flex:8; min-width:0;",
+          pickerInput(
+            inputId  = "jcr_trend_item",
+            label    = "选择指标", 
+            choices  = trend_item,
+            selected = trend_item[1],
+            multiple = F
+          )
+        ),
+        div(
+          style = "flex:2; display: flex; align-items: center; gap:1px; margin-top:10px",
+          shiny::actionButton(
+            inputId = "item_pre",
+            label   = NULL,
+            icon    = icon("angle-left")
+          ),
+          shiny::actionButton(
+            inputId = "itme_nex",
+            label   = NULL,
+            icon    = icon("angle-right")
+          )
+        )
       ),
-      ecs.output("inp2_sidebar_plot", height = "300px")
+      ecs.output("jcr_sidebar_plot", height = "300px")
     )
   })
-  #### 03. main：   dat_jcr ####
+  # main
   output$main_jcr    <- renderUI({
     tagList(
       h3("JCR 2019-2025年数据"),
@@ -229,28 +251,28 @@ server <- function(input, output, session) {
       DT::dataTableOutput("table_jcr")
     )})
   output$table_jcr   <- DT::renderDataTable({
-    item <- c(input$inp2_item, "group")
-    yr <- input$inp2_yr
-    jc <- input$inp2_jci
-    ji <- input$inp2_jif
-    ai <- input$inp2_ais
-    ca <- input$inp2_cate
-    ed <- input$inp2_ed
+    item <- c(input$jcr_item, "group")
+    yr <- input$jcr_yr
+    jc <- input$jcr_jci
+    ji <- input$jcr_jif
+    ai <- input$jcr_ais
+    ca <- input$jcr_cate
+    ed <- input$jcr_ed
     
     if(length(ca)==0) ca <- cate_jcr
-    scarch_p <- input$inp2_search_precise
+    scarch_p <- input$jcr_search_precise
     
     ed_or   <- jdat_jcr$Edition %>% unique()
     ed_or_s <- ed_or[sapply(strsplit(ed_or, "/"), \(i) any(ed %in% i))]   #匿名函数/(i)等价于 function(i)
     showdt  <- jdat_jcr[Edition %in% ed_or_s, ] %>% 
-      .[JCR_yr %in% yr & JCI_Quartile %in% jc & JIF_Quartile %in% ji & AIS_Quartile %in% ai & Category %in% ca, .SD, .SDcols=item] 
+      .[JCR_yr %in% yr & JCI_Quartile %in% jc & JIF_Quartile %in% ji & AIS_Quartile %in% ai & Category %in% ca, .SD, .SDcols=item]
     
     # 查找期刊
-    if (nzchar(input$inp2_search_content)) {
+    if (nzchar(input$jcr_search_content)) {
       if(scarch_p){
-        showdt <- showdt[trimws(tolower(Journal_name)) == trimws(tolower(input$inp2_search_content))]
+        showdt <- showdt[trimws(tolower(Journal_name)) == trimws(tolower(input$jcr_search_content))]
       } else {
-        showdt <- showdt[grepl(tolower(input$inp2_search_content), tolower(Journal_name), fixed=TRUE)]
+        showdt <- showdt[grepl(tolower(input$jcr_search_content), tolower(Journal_name), fixed=TRUE)]
       }
     }
     
@@ -264,10 +286,9 @@ server <- function(input, output, session) {
       selection = list(mode = "multiple", target = "row")
     )
   })
+  # sidebar上的趋势图
   row_jcr            <- reactive({input$table_jcr_rows_selected})
-  proxy <- dataTableProxy("table_jcr")                          #创建datatable代理
-  observeEvent(input$clear_sel, {proxy %>% selectRows(NULL)})   #清除选择
-  output$inp2_sidebar_plot <- ecs.render({
+  output$jcr_sidebar_plot <- ecs.render({
     # 如果没选则画提示信息
     if(length(row_jcr())<1){
       p <- ec.init(
@@ -293,8 +314,8 @@ server <- function(input, output, session) {
     }
     
     # 如果不是，正常画图
-    col_show <- input$inp2_trend_item
-    row_id <- row_jcr()[1]
+    col_show <- input$jcr_trend_item
+    row_id <- tail(row_jcr(), 1)
     group_id <- session$userData$showdt_jcr_g[row_id]
     tdat1 <- jdat_jcr[group==group_id,]
     tdat2 <- tdat1 %>% .[,max(.SD, na.rm=T), by="JCR_yr", .SDcols=col_show] %>% set_colnames(c("v1", "v2")) %>% setorder(v1)
@@ -359,13 +380,30 @@ server <- function(input, output, session) {
       grid = list(left="1%", right="1%", bottom="1%")
     )
   })
+  # 清空表格的选中行
+  proxy <- dataTableProxy("table_jcr")                          #创建datatable代理
+  observeEvent(input$clear_sel, {proxy %>% selectRows(NULL)})   #清除选择
+  # trend的前后按钮
+  observe({
+    trend_item_selected      <- input$jcr_trend_item
+    trend_item_selected_rank <- which(trend_item==trend_item_selected)
+    new_rank  <- max(1, trend_item_selected_rank-1)
+    updatePickerInput(session, inputId="jcr_trend_item", choices=trend_item, selected=trend_item[new_rank]) #必须要有choices，否则失效
+  }) %>% bindEvent(input$item_pre)
+  observe({
+    trend_item_selected      <- input$jcr_trend_item
+    trend_item_selected_rank <- which(trend_item==trend_item_selected)
+    new_rank  <- min(length(trend_item), trend_item_selected_rank+1)
+    updatePickerInput(session, inputId="jcr_trend_item", choices=trend_item, selected=trend_item[new_rank]) #必须要有choices，否则失效
+  }) %>% bindEvent(input$itme_nex)
   
   ########################
-  #### 04. sidebar：jdat_xr ####
+  #### 3. xr ####
+  # sidebar
   output$sidebar_xr    <- renderUI({
     tagList(
       pickerInput(
-        inputId  = "inp3_item",
+        inputId  = "xr_item",
         label    = "展示列项目", 
         choices  = item_xr,
         selected = item_xr[c(1,2,3,6)],
@@ -374,24 +412,24 @@ server <- function(input, output, session) {
       ),
       h4(strong("属性筛选")),
       pickerInput(
-        inputId  = "inp3_cate",
+        inputId  = "xr_cate",
         label    = "期刊分类", 
         choices  = cate_xr,
         options  = pickerOptions(container="body", liveSearch=TRUE, actionsBox=TRUE, `selected-text-format`="count > 3", `actions-box`=TRUE),
         multiple = TRUE
       ),
       checkboxGroupButtons(
-        inputId   = "inp3_rank",
+        inputId   = "xr_rank",
         label     = "分区", 
         choices   = rank_xr,
-        selected  = rank_xr[1],
+        selected  = rank_xr,
         status    = "primary",
         size      = 'xs',
         checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove",lib = "glyphicon"))
       ),
       h4(strong("查找期刊")),
       searchInput(
-        inputId     = "inp3_search_content",
+        inputId     = "xr_search_content",
         label       = NULL,
         placeholder = "查找...",
         btnSearch = icon("magnifying-glass"),
@@ -400,7 +438,7 @@ server <- function(input, output, session) {
       div(
         style = "display: flex; justify-content: center; width: 100%; ",
         prettySwitch(
-          inputId = "inp3_search_precise",
+          inputId = "xr_search_precise",
           label   = "精确查找",
           status  = "primary",
           fill    = TRUE
@@ -408,7 +446,7 @@ server <- function(input, output, session) {
       )
     )
   })
-  #### 05. main：   jdat_xr ####
+  # main
   output$main_xr       <- renderUI({
     tagList(
       h3("新锐分区 2026年数据"),
@@ -416,20 +454,20 @@ server <- function(input, output, session) {
       DT::dataTableOutput("table_xr")
     )})
   output$table_xr      <- DT::renderDataTable({
-    item <- input$inp3_item
-    ca <- input$inp3_cate
-    ra <- input$inp3_rank
+    item <- input$xr_item
+    ca <- input$xr_cate
+    ra <- input$xr_rank
     if(length(ca)==0) ca <- cate_xr
-    scarch_p <- input$inp3_search_precise
+    scarch_p <- input$xr_search_precise
     
     showdt  <- jdat_xr[Category %in% ca & Journal_ranking %in% ra, .SD, .SDcols=item] 
     
     # 查找期刊
-    if (nzchar(input$inp3_search_content)) {
+    if (nzchar(input$xr_search_content)) {
       if(scarch_p){
-        showdt <- showdt[trimws(tolower(Journal_name)) == trimws(tolower(input$inp3_search_content))]
+        showdt <- showdt[trimws(tolower(Journal_name)) == trimws(tolower(input$xr_search_content))]
       } else {
-        showdt <- showdt[grepl(tolower(input$inp3_search_content), tolower(Journal_name), fixed=TRUE)]
+        showdt <- showdt[grepl(tolower(input$xr_search_content), tolower(Journal_name), fixed=TRUE)]
       }
     }
     
@@ -442,11 +480,12 @@ server <- function(input, output, session) {
   })
   
   ########################  
-  #### 06. sidebar：letpub ####
+  #### 4. letpub ####
+  # sidebar
   output$sidebar_letpub <- renderUI({
     tagList(
       pickerInput(
-        inputId  = "inp1_item",
+        inputId  = "letpub_item",
         label    = "展示条目", 
         choices  = item_letpub,
         selected = item_letpub,
@@ -455,7 +494,7 @@ server <- function(input, output, session) {
       ),
       h4(strong("属性筛选")),
       checkboxGroupButtons(
-        inputId   = "inp1_coll",
+        inputId   = "letpub_coll",
         label     = "1.收录情况",
         choices   = c("SCI", "SCIE", "SCI/SCIE", "无数据"),
         status    = "primary",
@@ -463,7 +502,7 @@ server <- function(input, output, session) {
         checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove",lib = "glyphicon"))
       ),
       checkboxGroupButtons(
-        inputId   = "inp1_divi",
+        inputId   = "letpub_divi",
         label     = "2.中科院分区",
         choices   = c("1区", "2区", "3区", "4区", "未录"),
         status    = "primary",
@@ -471,21 +510,21 @@ server <- function(input, output, session) {
         checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove",lib = "glyphicon"))
       ),
       pickerInput(
-        inputId  = "inp1_cate",
+        inputId  = "letpub_cate",
         label    = "3.分类", 
         choices  = sort(unique(jdat_letpub$Category)),
         options  = list(`selected-text-format` = "count > 3", `actions-box` = TRUE), 
         multiple = TRUE
       ),
       pickerInput(
-        inputId  = "inp1_disc",
+        inputId  = "letpub_disc",
         label    = "4.学科", 
         choices  = sort(unique(jdat_letpub$Discipline)),
         options  = list(`selected-text-format` = "count > 3", `actions-box` = TRUE), 
         multiple = TRUE
       ),
       checkboxGroupButtons(
-        inputId   = "inp1_topj",
+        inputId   = "letpub_topj",
         label     = "5.Top期刊",
         choices   = c("是", "否", "无数据"),
         status    = "primary",
@@ -493,7 +532,7 @@ server <- function(input, output, session) {
         checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove",lib = "glyphicon"))
       ),
       checkboxGroupButtons(
-        inputId   = "inp1_revi",
+        inputId   = "letpub_revi",
         label     = "6.综述期刊",
         choices   = c("是", "否", "无数据"),
         status    = "primary",
@@ -501,14 +540,14 @@ server <- function(input, output, session) {
         checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove",lib = "glyphicon"))
       ),
       pickerInput(
-        inputId  = "inp1_freq",
+        inputId  = "letpub_freq",
         label    = "7.出版周期", 
         choices  = sort(unique(jdat_letpub$PublicationCycle)),
         options  = list(`selected-text-format`="count > 3",`actions-box`=TRUE), 
         multiple = TRUE
       ),
       pickerInput(
-        inputId  = "inp1_loac",
+        inputId  = "letpub_loac",
         label    = "8.出版地区", 
         choices  = sort(unique(jdat_letpub$Region)),
         options  = list(`selected-text-format`="count > 3",`actions-box`=TRUE), 
@@ -516,7 +555,7 @@ server <- function(input, output, session) {
       )
     )
   })
-  #### 07. main：   letpub ####
+  # main
   output$main_letpub    <- renderUI({
     tagList(
       h3("LetPub 2018年数据"),
@@ -524,15 +563,15 @@ server <- function(input, output, session) {
       DT::dataTableOutput("table_letpub")
     )})
   output$table_letpub   <- DT::renderDataTable({
-    if(length(input$inp1_item) != 0) ip1_item <- input$inp1_item else ip1_item <- item_letpub
-    if(length(input$inp1_coll) != 0) ip1_coll <- input$inp1_coll else ip1_coll <- unique(jdat_letpub$IsSCI)
-    if(length(input$inp1_divi) != 0) ip1_divi <- input$inp1_divi else ip1_divi <- unique(jdat_letpub$CASRanking)
-    if(length(input$inp1_cate) != 0) ip1_cate <- input$inp1_cate else ip1_cate <- unique(jdat_letpub$Category)
-    if(length(input$inp1_disc) != 0) ip1_disc <- input$inp1_disc else ip1_disc <- unique(jdat_letpub$Discipline)
-    if(length(input$inp1_topj) != 0) ip1_topj <- input$inp1_topj else ip1_topj <- unique(jdat_letpub$IsTop)
-    if(length(input$inp1_revi) != 0) ip1_revi <- input$inp1_revi else ip1_revi <- unique(jdat_letpub$IsReview)
-    if(length(input$inp1_freq) != 0) ip1_freq <- input$inp1_freq else ip1_freq <- unique(jdat_letpub$PublicationCycle)
-    if(length(input$inp1_loac) != 0) ip1_loac <- input$inp1_loac else ip1_loac <- unique(jdat_letpub$Region)
+    if(length(input$letpub_item) != 0) ip1_item <- input$letpub_item else ip1_item <- item_letpub
+    if(length(input$letpub_coll) != 0) ip1_coll <- input$letpub_coll else ip1_coll <- unique(jdat_letpub$IsSCI)
+    if(length(input$letpub_divi) != 0) ip1_divi <- input$letpub_divi else ip1_divi <- unique(jdat_letpub$CASRanking)
+    if(length(input$letpub_cate) != 0) ip1_cate <- input$letpub_cate else ip1_cate <- unique(jdat_letpub$Category)
+    if(length(input$letpub_disc) != 0) ip1_disc <- input$letpub_disc else ip1_disc <- unique(jdat_letpub$Discipline)
+    if(length(input$letpub_topj) != 0) ip1_topj <- input$letpub_topj else ip1_topj <- unique(jdat_letpub$IsTop)
+    if(length(input$letpub_revi) != 0) ip1_revi <- input$letpub_revi else ip1_revi <- unique(jdat_letpub$IsReview)
+    if(length(input$letpub_freq) != 0) ip1_freq <- input$letpub_freq else ip1_freq <- unique(jdat_letpub$PublicationCycle)
+    if(length(input$letpub_loac) != 0) ip1_loac <- input$letpub_loac else ip1_loac <- unique(jdat_letpub$Region)
     showdt <- jdat_letpub[IsSCI %in% ip1_coll &
                             CASRanking %in% ip1_divi &
                             Category %in% ip1_cate &
@@ -549,11 +588,12 @@ server <- function(input, output, session) {
   })
   
   ########################  
-  #### 08. sidebar：jdat_cnki ####
+  #### 5. cnki ####
+  # sidebar
   output$sidebar_cnki <- renderUI({
     tagList(
       pickerInput(
-        inputId  = "inp4_item",
+        inputId  = "cnki_item",
         label    = "展示条目", 
         choices  = item_cnki,
         selected = item_cnki[c(3,6,7,8,10,13,16)],
@@ -562,35 +602,35 @@ server <- function(input, output, session) {
       ),
       h4(strong("属性筛选")),
       pickerInput(
-        inputId  = "inp4_cate1",
+        inputId  = "cnki_cate1",
         label    = "1.一级分类", 
         choices  = cate_cnki_1,
         options  = list(`selected-text-format` = "count > 3", `actions-box` = TRUE),
         multiple = TRUE
       ),
       pickerInput(
-        inputId  = "inp4_cate2",
+        inputId  = "cnki_cate2",
         label    = "2.二级分类", 
         choices  = cate_cnki_2,
         options  = list(`selected-text-format` = "count > 3", `actions-box` = TRUE),
         multiple = TRUE
       ),
       pickerInput(
-        inputId  = "inp4_eval",
+        inputId  = "cnki_eval",
         label    = "3.收录情况", 
         choices  = eval_cnki,
         options  = list(`selected-text-format` = "count > 3", `actions-box` = TRUE), 
         multiple = TRUE
       ),
       pickerInput(
-        inputId  = "inp4_freq",
+        inputId  = "cnki_freq",
         label    = "4.出版周期", 
         choices  = freq_cnki,
         options  = list(`selected-text-format` = "count > 3", `actions-box` = TRUE),
         multiple = TRUE
       ),
       checkboxGroupButtons(
-        inputId   = "inp4_lang",
+        inputId   = "cnki_lang",
         label     = "5.期刊语言",
         choices   = c("中文", "英文", "日文", "韩文"),
         status    = "primary",
@@ -598,7 +638,7 @@ server <- function(input, output, session) {
         checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove",lib = "glyphicon"))
       ),
       checkboxGroupButtons(
-        inputId   = "inp4_stat",
+        inputId   = "cnki_stat",
         label     = "6.出版状态",
         choices   = c("发行", "停刊", "合并"),
         status    = "primary",
@@ -607,7 +647,7 @@ server <- function(input, output, session) {
       ),
     )
   })
-  #### 09. main：   jdat_cnki ####
+  # main 
   output$main_cnki    <- renderUI({
     tagList(
       h3("CNKI 2022年数据"),
@@ -615,13 +655,13 @@ server <- function(input, output, session) {
       DT::dataTableOutput("table_cnki")
     )})
   output$table_cnki   <- DT::renderDataTable({
-    if(length(input$inp4_item) != 0)  ip4_item  <- input$inp4_item  else ip4_item  <- item_cnki
-    if(length(input$inp4_cate1) != 0) ip4_cate1 <- input$inp4_cate1 else ip4_cate1 <- cate_cnki_1
-    if(length(input$inp4_cate2) != 0) ip4_cate2 <- input$inp4_cate2 else ip4_cate2 <- cate_cnki_2
-    if(length(input$inp4_eval) != 0)  ip4_eval  <- input$inp4_eval  else ip4_eval  <- eval_cnki
-    if(length(input$inp4_freq) != 0)  ip4_freq  <- input$inp4_freq  else ip4_freq  <- freq_cnki
-    if(length(input$inp4_lang) != 0)  ip4_lang  <- input$inp4_lang  else ip4_lang  <- c("中文", "英文", "日文", "韩文")
-    if(length(input$inp4_stat) != 0)  ip4_stat  <- input$inp4_stat  else ip4_stat  <- c("发行", "停刊", "合并")
+    if(length(input$cnki_item) != 0)  ip4_item  <- input$cnki_item  else ip4_item  <- item_cnki
+    if(length(input$cnki_cate1) != 0) ip4_cate1 <- input$cnki_cate1 else ip4_cate1 <- cate_cnki_1
+    if(length(input$cnki_cate2) != 0) ip4_cate2 <- input$cnki_cate2 else ip4_cate2 <- cate_cnki_2
+    if(length(input$cnki_eval) != 0)  ip4_eval  <- input$cnki_eval  else ip4_eval  <- eval_cnki
+    if(length(input$cnki_freq) != 0)  ip4_freq  <- input$cnki_freq  else ip4_freq  <- freq_cnki
+    if(length(input$cnki_lang) != 0)  ip4_lang  <- input$cnki_lang  else ip4_lang  <- c("中文", "英文", "日文", "韩文")
+    if(length(input$cnki_stat) != 0)  ip4_stat  <- input$cnki_stat  else ip4_stat  <- c("发行", "停刊", "合并")
     sig_cate1 <- sig_cate2 <- sig_eval <- sig_freq<- sig_lang <- sig_stat <- rep(T, nrow(jdat_cnki))
     if(length(ip4_cate1) < length(cate_cnki_1)){
       sig_cate1 <- rep(F, nrow(jdat_cnki))
@@ -663,7 +703,7 @@ server <- function(input, output, session) {
   })
   
   ########################
-  #### 10. Main：   对比 ####
+  #### 6. 对比 ####
   output$ui_main_selected <- renderUI({
     tagList(
       h3("已选期刊："),
@@ -681,7 +721,6 @@ server <- function(input, output, session) {
       DT::dataTableOutput("jdat_cnki")
     )
   })
-  # row_jcr            <- reactive({input$table_jcr_rows_selected})
   row_xr             <- reactive({input$table_xr_rows_selected})
   row_latpub         <- reactive({input$table_letpub_rows_selected})
   row_cnki           <- reactive({input$table_cnki_rows_selected})
