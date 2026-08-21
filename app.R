@@ -23,6 +23,23 @@ ui <- fluidPage(
       }
     });
   ")),
+  tags$style(HTML("
+    #page_jcr_sider, #page_xr_sider, #page_letpub_sider, #page_cnki_sider {
+      width: 320px;
+      float: left;
+      margin-left: 15px;
+      margin-right: 5px;
+    }
+    #page_jcr_main, #page_xr_main, #page_letpub_main, #page_cnki_main {
+      padding: 0px;
+      padding-top: 1px;
+      margin-left: 350px;
+      margin-right: 15px;
+      background-color: white;
+      border: none;
+      overflow:hidden;
+    }
+  ")),
   tags$head(tags$title("Journal")),
   tags$head(tags$link(rel = "shortcut icon", href = "journal.ico")),
   titlePanel("学术期刊收录信息"),
@@ -31,31 +48,23 @@ ui <- fluidPage(
     type = "pills",
     tabPanel(
       title = "JCR",
-      sidebarLayout(
-        sidebarPanel(width = 3, uiOutput("sidebar_jcr")),
-        mainPanel(uiOutput("main_jcr"))
-      )
+      wellPanel(id="page_jcr_sider", uiOutput("sidebar_jcr")),
+      wellPanel(id="page_jcr_main",  uiOutput("main_jcr"))
     ),
     tabPanel(
       title = "新锐分区",
-      sidebarLayout(
-        sidebarPanel(width = 3, uiOutput("sidebar_xr")),
-        mainPanel(uiOutput("main_xr"))
-      )
+      wellPanel(id="page_xr_sider", uiOutput("sidebar_xr")),
+      wellPanel(id="page_xr_main",  uiOutput("main_xr"))
     ),
     tabPanel(
       title = "LetPub",
-      sidebarLayout(
-        sidebarPanel(width=3, uiOutput("sidebar_letpub")),
-        mainPanel(uiOutput("main_letpub"))
-      )
+      wellPanel(id="page_letpub_sider", uiOutput("sidebar_letpub")),
+      wellPanel(id="page_letpub_main",  uiOutput("main_letpub"))
     ),
     tabPanel(
       title = "CNKI",
-      sidebarLayout(
-        sidebarPanel(width = 3, uiOutput("sidebar_cnki")),
-        mainPanel(uiOutput("main_cnki"))
-      )
+      wellPanel(id="page_cnki_sider", uiOutput("sidebar_cnki")),
+      wellPanel(id="page_cnki_main",  uiOutput("main_cnki"))
     ),
     tabPanel(
       title = "已选项目",
@@ -95,10 +104,10 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   #### 1. Load dataset ####
   # 原始数据
-  jdat_jcr    <- fread('./journal_jcr_2025.csv', stringsAsFactors=F, encoding = "UTF-8") %>% setorder(-JCR_yr, -JIF, na.last=T)
-  jdat_cnki   <- fread('./journal_cnki_2022.csv', stringsAsFactors=F, encoding = "UTF-8")
-  jdat_letpub <- fread('./journal_letpub_2018.csv', stringsAsFactors=F, encoding = "UTF-8")
+  jdat_jcr    <- fread('./journal_jcr_2025.csv', stringsAsFactors=F) %>% unique() %>% setorder(-JCR_yr, -JIF, na.last=T)
   jdat_xr     <- fread('./journal_xr_2026.csv', stringsAsFactors=F, encoding = "UTF-8") %>% setorder(Category, Serial_number)
+  jdat_letpub <- fread('./journal_letpub_2018.csv', stringsAsFactors=F, encoding = "UTF-8")
+  jdat_cnki   <- fread('./journal_cnki_2022.csv', stringsAsFactors=F, encoding = "UTF-8")
   
   # 数据处理
   cate_jcr    <- jdat_jcr$Category %>% unique() %>% sort()
@@ -114,9 +123,10 @@ server <- function(input, output, session) {
   year_jcr    <- jdat_jcr$JCR_yr %>% unique()  %>% sort(decreasing=T)
   tedi_jcr    <- jdat_jcr$Edition %>% unique() %>% sort()
   edit_jcr    <- tedi_jcr[!str_detect(tedi_jcr,"/")]
-  jciq_jcr    <- jdat_jcr$JCI_Quartile %>% unique() %>% .[str_length(.)>0] %>% sort()
-  jifq_jcr    <- jdat_jcr$JIF_Quartile %>% unique() %>% .[str_length(.)>0] %>% sort()
-  aisq_jcr    <- jdat_jcr$AIS_Quartile %>% unique() %>% .[str_length(.)>0] %>% sort()
+  quar_jcr    <- c("Q1"="Q1", "Q2"="Q2", "Q3"="Q3", "Q4"="Q4", "NONE"="")
+  # jciq_jcr    <- jdat_jcr$JCI_Quartile %>% unique() %>% .[str_length(.)>0] %>% sort()
+  # jifq_jcr    <- jdat_jcr$JIF_Quartile %>% unique() %>% .[str_length(.)>0] %>% sort()
+  # aisq_jcr    <- jdat_jcr$AIS_Quartile %>% unique() %>% .[str_length(.)>0] %>% sort()
   rank_xr     <- jdat_xr$Journal_ranking %>% unique() %>% sort() %>% set_names(paste0(.,"区"))
   trend_item  <- c("JIF", "Total_Articles", "OA_percent", "Citable_Items", "Total_Citations", "JCI")
   
@@ -127,26 +137,26 @@ server <- function(input, output, session) {
     tagList(
       pickerInput(
         inputId  = "jcr_item",
-        label    = "展示列项目", 
+        label    = "列名", 
         choices  = item_jcr,
-        selected = item_jcr[c(1,2,5,8,17,18)],
+        selected = item_jcr[c(1,2,4,5,8,17,18)],
         options  = pickerOptions(container="body", liveSearch=T, actionsBox=T, `selected-text-format`="count>3", `actions-box`=T),
         multiple = T
       ),
       h4(strong("属性筛选")),
-      pickerInput(
-        inputId  = "jcr_cate",
-        label    = "期刊分类", 
-        choices  = cate_jcr,
-        options  = pickerOptions(container="body", liveSearch=T, actionsBox=T, `selected-text-format`="count>3", `actions-box`=T),
-        multiple = T
-      ),
       pickerInput(
         inputId  = "jcr_yr",
         label    = "年份", 
         choices  = year_jcr,
         selected = year_jcr,
         options  = pickerOptions(container="body", actionsBox=T, `selected-text-format`="count>3", `actions-box`=T),
+        multiple = T
+      ),
+      pickerInput(
+        inputId  = "jcr_cate",
+        label    = "分类", 
+        choices  = cate_jcr,
+        options  = pickerOptions(container="body", liveSearch=T, actionsBox=T, `selected-text-format`="count>3", `actions-box`=T),
         multiple = T
       ),
       checkboxGroupButtons(
@@ -161,8 +171,8 @@ server <- function(input, output, session) {
       checkboxGroupButtons(
         inputId   = "jcr_jci",
         label     = "JCI分区", 
-        choices   = jciq_jcr,
-        selected  = jciq_jcr,
+        choices   = quar_jcr,
+        selected  = quar_jcr,
         status    = "primary",
         size      = 'xs',
         checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
@@ -170,8 +180,8 @@ server <- function(input, output, session) {
       checkboxGroupButtons(
         inputId   = "jcr_jif",
         label     = "JIF分区", 
-        choices   = jifq_jcr,
-        selected  = jifq_jcr,
+        choices   = quar_jcr,
+        selected  = quar_jcr,
         status    = "primary",
         size      = 'xs',
         checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove", lib = "glyphicon"))
@@ -179,8 +189,8 @@ server <- function(input, output, session) {
       checkboxGroupButtons(
         inputId   = "jcr_ais",
         label     = "AIS分区", 
-        choices   = aisq_jcr,
-        selected  = aisq_jcr,
+        choices   = quar_jcr,
+        selected  = quar_jcr,
         status    = "primary",
         size      = 'xs',
         checkIcon = list(yes = icon("ok", lib = "glyphicon"), no = icon("remove",lib = "glyphicon"))
@@ -242,7 +252,7 @@ server <- function(input, output, session) {
   # main
   output$main_jcr    <- renderUI({
     tagList(
-      h3("JCR 2019-2025年数据"),
+      h3("JCR 2019-2025年数据", style="margin-top:0px; margin-bottom:0px;"),
       DT::dataTableOutput("table_jcr")
     )})
   output$table_jcr   <- DT::renderDataTable({
@@ -263,11 +273,21 @@ server <- function(input, output, session) {
       .[JCR_yr %in% yr & JCI_Quartile %in% jc & JIF_Quartile %in% ji & AIS_Quartile %in% ai & Category %in% ca,]
     
     # 查找期刊
+    # 定义清洗函数，模糊查找时，执行将文字中的特殊符号全都替换为空格等处理
+    clean_text <- function(x){
+      res <- tolower(x) %>% 
+        gsub("&", " and ", ., fixed=TRUE) %>%
+        gsub("[^a-z0-9 ]", " ", .) %>% 
+        gsub("\\s+", " ", .) %>%
+        trimws()
+      return(res)
+    }
     if(nzchar(input$jcr_search_content)){
       if(scarch_p){
         showdt <- showdt[trimws(tolower(Journal_name)) == trimws(tolower(input$jcr_search_content))]
       } else {
-        showdt <- showdt[grepl(tolower(input$jcr_search_content), tolower(Journal_name), fixed=TRUE)]
+        # showdt <- showdt[grepl(tolower(input$jcr_search_content), tolower(Journal_name), fixed=TRUE),]
+        showdt <- showdt[grepl(clean_text(input$jcr_search_content), clean_text(Journal_name), fixed = TRUE),]
       }
     }
     
@@ -349,47 +369,58 @@ server <- function(input, output, session) {
     row_id   <- tail(row_jcr(), 1)                           #展示最后一次点击对应的期刊
     group_id <- session$userData$showdt_jcr_g[row_id]
     tdat1    <- jdat_jcr[group==group_id,]
-    tdat2    <- tdat1 %>% .[,max(.SD, na.rm=T), by="JCR_yr", .SDcols=col_show] %>% set_colnames(c("v1", "v2")) %>% setorder(v1)
+    tdat2    <- tdat1[, .SD, .SDcols=c("JCR_yr", col_show)] %>% na.omit()
     jname    <- tdat1$Journal_name[1]
-    ymin     <- tdat2$v2 %>% min()
-    ymax     <- tdat2$v2 %>% max()
-    yrange   <- ymax-ymin
-    yupper   <- ((ymax+0.10*yrange)) %>% ceiling()
-    ylower   <- ((ymin-0.10*yrange)) %>% floor() %>% max(0)
-    plotdt   <- tdat2 %>% .[data.table(v1=2019:2025), on="v1"]   #让每一年都有横坐标
+  
+    if(nrow(tdat2)<1){
+      # 如果没有趋势数据，则返回空数据
+      ylower <- yupper <- 0
+      plotdt <-data.table(year=2019:2025, v2=NA_real_)
+    } else{
+      # 否则正常处理数据
+      tdat3  <- tdat2[,max(.SD, na.rm=T), by="JCR_yr", .SDcols=col_show] %>% set_colnames(c("year", "v2"))
+      ymin   <- tdat3$v2 %>% min()
+      ymax   <- tdat3$v2 %>% max()
+      yrange <- ymax-ymin
+      yupper <- ((ymax+0.10*yrange)) %>% ceiling()
+      ylower <- ((ymin-0.10*yrange)) %>% floor() %>% max(0)
+      plotdt <- tdat3 %>% .[data.table(year=2019:2025), on="year"]   #让每一年都有横坐标
+    }
+    
+    # 画图
     p <- ec.init(
-      color = "#56B4E9",
-      title = list(text=jname, textStyle=list(fontSize=11), top=0),
+      color  = "#56B4E9",
+      title  = list(text=jname, textStyle=list(fontSize=11), top=0),
       series = list(
         list(
-          type = "line", 
-          name = col_show, 
-          data = plotdt$v2, 
+          type  = "line", 
+          name  = col_show, 
+          data  = plotdt$v2, 
           label = list(normal = list(show=TRUE, position="top", textStyle=list(fontSize=10)))
         )
       ),
-      xAxis = list(
+      xAxis  = list(
         type = "category", 
-        data = plotdt$v1,
+        data = plotdt$year,
         name = "Year",
-        boundaryGap = TRUE,          #离散x轴，两端是否gap
-        nameLocation = "middle",
+        boundaryGap   = TRUE,          #离散x轴，两端是否gap
+        nameLocation  = "middle",
         nameTextStyle = list(fontSize = 10, padding = c(10, 0, 0, 0)), 
-        axisLine = list(show = TRUE, lineStyle = list(color = "black")),
-        axisTick = list(show = T, alignWithLabel =T),
+        axisLine  = list(show = TRUE, lineStyle = list(color = "black")),
+        axisTick  = list(show = T, alignWithLabel =T),
         axisLabel = list(fontSize = 10 , padding = c(0, 0, 0, 0)
         )
       ),
-      yAxis = list(
+      yAxis  = list(
         type = "value", 
         name = col_show,
-        min = ylower,
-        max = yupper,
+        min  = ylower,
+        max  = yupper,
         nameTextStyle = list(fontSize = 10, padding = c(0, 0, 0, 0)),
-        nameLocation = "middle",
+        nameLocation  = "middle",
         nameRotate = 90,
-        nameGap = 0,
-        axisLine = list(show = TRUE, lineStyle = list(color = "black")),
+        nameGap   = 0,
+        axisLine  = list(show = TRUE, lineStyle = list(color = "black")),
         axisLabel = list(fontSize = 10 , padding = c(0, 0, 0, 0)
         )
       ),
@@ -409,7 +440,6 @@ server <- function(input, output, session) {
       ),
       legend = list(show=F),
       grid = list(top="9%", right="1%", bottom="1%", left="1%")
-      # grid = list(right="1%", bottom="1%", left="1%")
     )
     return(p)
   })
@@ -497,9 +527,9 @@ server <- function(input, output, session) {
     # 查找期刊
     if(nzchar(input$xr_search_content)){
       if(scarch_p){
-        showdt <- showdt[trimws(tolower(Journal_name)) == trimws(tolower(input$xr_search_content))]
+        showdt <- showdt[trimws(tolower(Journal_name)) == trimws(tolower(input$xr_search_content)),]
       } else {
-        showdt <- showdt[grepl(tolower(input$xr_search_content), tolower(Journal_name), fixed=TRUE)]
+        showdt <- showdt[grepl(tolower(input$xr_search_content), tolower(Journal_name), fixed=TRUE),]
       }
     }
     
