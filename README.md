@@ -1,6 +1,6 @@
 # Journal
 
-学术期刊收录信息（shinyapp在线版：[Journal](http://lcpmgh.com/journal)）
+学术期刊质量查询工具（在线访问：[Journal](http://lcpmgh.com/journal)）
 
 收集中英文学术期刊信息，制作具有交互界面的查询系统，直观了解不同学术期刊的影响因子、分区、收录等信息，用于读文献时判断论文质量、投稿时选择目标期刊。此外本程序采用R语言编程，涉及爬虫和shiny等功能，可作为案例学习相关编程技能。
 

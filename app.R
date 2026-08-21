@@ -27,14 +27,14 @@ ui <- fluidPage(
     #page_jcr_sider, #page_xr_sider, #page_letpub_sider, #page_cnki_sider {
       width: 320px;
       float: left;
-      margin-left: 15px;
+      margin-left: 0px;
       margin-right: 5px;
     }
     #page_jcr_main, #page_xr_main, #page_letpub_main, #page_cnki_main {
       padding: 0px;
       padding-top: 1px;
-      margin-left: 350px;
-      margin-right: 15px;
+      margin-left: 330px;
+      margin-right: 3px;
       background-color: white;
       border: none;
       overflow:hidden;
@@ -42,7 +42,7 @@ ui <- fluidPage(
   ")),
   tags$head(tags$title("Journal")),
   tags$head(tags$link(rel = "shortcut icon", href = "journal.ico")),
-  titlePanel("学术期刊收录信息"),
+  titlePanel("学术期刊质量查询工具"),
   tabsetPanel(
     id = "mainPanel",
     type = "pills",
@@ -104,7 +104,7 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   #### 1. Load dataset ####
   # 原始数据
-  jdat_jcr    <- fread('./journal_jcr_2025.csv', stringsAsFactors=F) %>% unique() %>% setorder(-JCR_yr, -JIF, na.last=T)
+  jdat_jcr    <- fread('./journal_jcr_2025.csv', stringsAsFactors=F) %>% unique() %>% setorder(-Year, -JIF, na.last=T)
   jdat_xr     <- fread('./journal_xr_2026.csv', stringsAsFactors=F, encoding = "UTF-8") %>% setorder(Category, Serial_number)
   jdat_letpub <- fread('./journal_letpub_2018.csv', stringsAsFactors=F, encoding = "UTF-8")
   jdat_cnki   <- fread('./journal_cnki_2022.csv', stringsAsFactors=F, encoding = "UTF-8")
@@ -120,15 +120,15 @@ server <- function(input, output, session) {
   item_xr     <- names(jdat_xr)
   item_letpub <- names(jdat_letpub)
   item_cnki   <- names(jdat_cnki) %>% .[-1]
-  year_jcr    <- jdat_jcr$JCR_yr %>% unique()  %>% sort(decreasing=T)
+  year_jcr    <- jdat_jcr$Year %>% unique()  %>% sort(decreasing=T)
   tedi_jcr    <- jdat_jcr$Edition %>% unique() %>% sort()
   edit_jcr    <- tedi_jcr[!str_detect(tedi_jcr,"/")]
   quar_jcr    <- c("Q1"="Q1", "Q2"="Q2", "Q3"="Q3", "Q4"="Q4", "NONE"="")
-  # jciq_jcr    <- jdat_jcr$JCI_Quartile %>% unique() %>% .[str_length(.)>0] %>% sort()
-  # jifq_jcr    <- jdat_jcr$JIF_Quartile %>% unique() %>% .[str_length(.)>0] %>% sort()
-  # aisq_jcr    <- jdat_jcr$AIS_Quartile %>% unique() %>% .[str_length(.)>0] %>% sort()
+  # jciq_jcr    <- jdat_jcr$JCI_Q %>% unique() %>% .[str_length(.)>0] %>% sort()
+  # jifq_jcr    <- jdat_jcr$JIF_Q %>% unique() %>% .[str_length(.)>0] %>% sort()
+  # aisq_jcr    <- jdat_jcr$AIS_Q %>% unique() %>% .[str_length(.)>0] %>% sort()
   rank_xr     <- jdat_xr$Journal_ranking %>% unique() %>% sort() %>% set_names(paste0(.,"区"))
-  trend_item  <- c("JIF", "Total_Articles", "OA_percent", "Citable_Items", "Total_Citations", "JCI")
+  trend_item  <- c("JIF", "JCI", "OA_P", "Articles", "Citations")
   
   ########################
   #### 2. jcr ####
@@ -257,20 +257,19 @@ server <- function(input, output, session) {
     )})
   output$table_jcr   <- DT::renderDataTable({
     item <- input$jcr_item
+    if(length(item)==0) item <- item_jcr[c(1,2,4,5,8,17,18)]
     yr <- input$jcr_yr
     jc <- input$jcr_jci
     ji <- input$jcr_jif
     ai <- input$jcr_ais
     ca <- input$jcr_cate
     ed <- input$jcr_ed
-    
+    sp <- input$jcr_search_precise
     if(length(ca)==0) ca <- cate_jcr
-    scarch_p <- input$jcr_search_precise
-    
     ed_or   <- jdat_jcr$Edition %>% unique()
     ed_or_s <- ed_or[sapply(strsplit(ed_or, "/"), \(i) any(ed %in% i))]   #匿名函数/(i)等价于 function(i)
     showdt  <- jdat_jcr[Edition %in% ed_or_s, ] %>% 
-      .[JCR_yr %in% yr & JCI_Quartile %in% jc & JIF_Quartile %in% ji & AIS_Quartile %in% ai & Category %in% ca,]
+      .[Year %in% yr & JCI_Q %in% jc & JIF_Q %in% ji & AIS_Q %in% ai & Category %in% ca,]
     
     # 查找期刊
     # 定义清洗函数，模糊查找时，执行将文字中的特殊符号全都替换为空格等处理
@@ -283,18 +282,25 @@ server <- function(input, output, session) {
       return(res)
     }
     if(nzchar(input$jcr_search_content)){
-      if(scarch_p){
-        showdt <- showdt[trimws(tolower(Journal_name)) == trimws(tolower(input$jcr_search_content))]
+      if(sp){
+        showdt <- showdt[trimws(tolower(Name)) == trimws(tolower(input$jcr_search_content))]
       } else {
-        # showdt <- showdt[grepl(tolower(input$jcr_search_content), tolower(Journal_name), fixed=TRUE),]
-        showdt <- showdt[grepl(clean_text(input$jcr_search_content), clean_text(Journal_name), fixed = TRUE),]
+        # showdt <- showdt[grepl(tolower(input$jcr_search_content), tolower(Name), fixed=TRUE),]
+        showdt <- showdt[grepl(clean_text(input$jcr_search_content), clean_text(Name), fixed = TRUE),]
       }
     }
     
-    # 输出表格
+    # 输出数据
     session$userData$showdt_jcr_g <- showdt$group      #返回输出表格的group
     showdt <- showdt[, .SD, .SDcols=item]              #筛选列，在此之前提取group，使其不受筛选影响
     session$userData$showdt_jcr   <- showdt            #返回输出表格
+    
+    # 设置指定列宽度
+    dt_width <- c(ISSN_E="60px", ISSN_P="60px")
+    column_defs <- lapply(
+      intersect(names(dt_width), names(showdt)),
+      \(x) list(width = unname(dt_width[x]),targets = x)
+    )
     
     # 表格
     DT::datatable(
@@ -307,7 +313,8 @@ server <- function(input, output, session) {
         scrollY = "1200px",
         scrollCollapse = TRUE,  
         lengthChange = FALSE,
-        searching = FALSE
+        searching = FALSE,
+        columnDefs = column_defs
       ),
       selection = list(mode = "multiple", target = "row")
     )
@@ -324,7 +331,7 @@ server <- function(input, output, session) {
       row_id   <- tail(row_jcr(), 1)                           #展示最后一次点击对应的期刊
       group_id <- session$userData$showdt_jcr_g[row_id]
       tdat     <- jdat_jcr[group==group_id,]
-      t_name   <- tdat$Journal_name[1]
+      t_name   <- tdat$Name[1]
       t_cate   <- tdat$Category[1]
       t_grou   <- group_id
       t_item   <- input$jcr_trend_item
@@ -369,8 +376,8 @@ server <- function(input, output, session) {
     row_id   <- tail(row_jcr(), 1)                           #展示最后一次点击对应的期刊
     group_id <- session$userData$showdt_jcr_g[row_id]
     tdat1    <- jdat_jcr[group==group_id,]
-    tdat2    <- tdat1[, .SD, .SDcols=c("JCR_yr", col_show)] %>% na.omit()
-    jname    <- tdat1$Journal_name[1]
+    tdat2    <- tdat1[, .SD, .SDcols=c("Year", col_show)] %>% na.omit()
+    jname    <- tdat1$Name[1]
   
     if(nrow(tdat2)<1){
       # 如果没有趋势数据，则返回空数据
@@ -378,7 +385,7 @@ server <- function(input, output, session) {
       plotdt <-data.table(year=2019:2025, v2=NA_real_)
     } else{
       # 否则正常处理数据
-      tdat3  <- tdat2[,max(.SD, na.rm=T), by="JCR_yr", .SDcols=col_show] %>% set_colnames(c("year", "v2"))
+      tdat3  <- tdat2[,max(.SD, na.rm=T), by="Year", .SDcols=col_show] %>% set_colnames(c("year", "v2"))
       ymin   <- tdat3$v2 %>% min()
       ymax   <- tdat3$v2 %>% max()
       yrange <- ymax-ymin
@@ -521,15 +528,15 @@ server <- function(input, output, session) {
     ca <- input$xr_cate
     ra <- input$xr_rank
     if(length(ca)==0) ca <- cate_xr
-    scarch_p <- input$xr_search_precise
+    sp <- input$xr_search_precise
     showdt   <- jdat_xr[Category %in% ca & Journal_ranking %in% ra, .SD, .SDcols=item] 
     
     # 查找期刊
     if(nzchar(input$xr_search_content)){
-      if(scarch_p){
-        showdt <- showdt[trimws(tolower(Journal_name)) == trimws(tolower(input$xr_search_content)),]
+      if(sp){
+        showdt <- showdt[trimws(tolower(Name)) == trimws(tolower(input$xr_search_content)),]
       } else {
-        showdt <- showdt[grepl(tolower(input$xr_search_content), tolower(Journal_name), fixed=TRUE),]
+        showdt <- showdt[grepl(tolower(input$xr_search_content), tolower(Name), fixed=TRUE),]
       }
     }
     
